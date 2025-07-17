@@ -42,10 +42,6 @@ From `git` clone then build with `go`:
 ```
 git clone https://github.com/jabbercracky/ptt && cd ptt && go build ./main.go && mv ./main ~/go/bin/ptt && ptt
 ```
-From `docker` with the program as the entry point:
-```
-docker run -it -v ${PWD}:/data jwnuk/ptt
-``` 
 From `git` then build with `docker`:
 ```
 git clone https://github.com/jabbercracky/ptt && cd ptt && docker build -t ptt . && docker run -it -v ${PWD}:/data ptt
