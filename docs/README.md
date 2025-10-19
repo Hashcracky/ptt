@@ -30,21 +30,21 @@
 ## Getting Started:
 
 Usage documentation can be found in the `/docs/USAGE.md` directory or on the repository here:
-- [GitHub Link](https://github.com/Jabbercracky/ptt/tree/main/docs/USAGE.md)
+- [GitHub Link](https://github.com/hashcracky/ptt/tree/main/docs/USAGE.md)
 
 ### Install:
 
 From source with `go`:
 ```
-go install github.com/jabbercracky/ptt@latest
+go install github.com/hashcracky/ptt@latest
 ```
 From `git` clone then build with `go`:
 ```
-git clone https://github.com/jabbercracky/ptt && cd ptt && go build ./main.go && mv ./main ~/go/bin/ptt && ptt
+git clone https://github.com/hashcracky/ptt && cd ptt && go build ./main.go && mv ./main ~/go/bin/ptt && ptt
 ```
 From `git` then build with `docker`:
 ```
-git clone https://github.com/jabbercracky/ptt && cd ptt && docker build -t ptt . && docker run -it -v ${PWD}:/data ptt
+git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . && docker run -it -v ${PWD}:/data ptt
 ```
 
 ---
