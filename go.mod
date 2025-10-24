@@ -1,6 +1,6 @@
-module github.com/jabbercracky/ptt
+module github.com/hashcracky/ptt
 
-go 1.24.4
+go 1.25.3
 
 require (
 	golang.org/x/net v0.24.0
