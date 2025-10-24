@@ -9,10 +9,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/jabbercracky/ptt/pkg/format"
-	"github.com/jabbercracky/ptt/pkg/models"
-	"github.com/jabbercracky/ptt/pkg/transform"
-	"github.com/jabbercracky/ptt/pkg/utils"
+	"github.com/hashcracky/ptt/pkg/format"
+	"github.com/hashcracky/ptt/pkg/models"
+	"github.com/hashcracky/ptt/pkg/transform"
+	"github.com/hashcracky/ptt/pkg/utils"
 )
 
 var version = "1.0.0"

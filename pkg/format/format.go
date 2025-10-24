@@ -14,8 +14,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/jabbercracky/ptt/pkg/mask"
-	"github.com/jabbercracky/ptt/pkg/models"
+	"github.com/hashcracky/ptt/pkg/mask"
+	"github.com/hashcracky/ptt/pkg/models"
 )
 
 // ----------------------------------------------------------------------------

@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jabbercracky/ptt/pkg/format"
-	"github.com/jabbercracky/ptt/pkg/mask"
-	"github.com/jabbercracky/ptt/pkg/rule"
-	"github.com/jabbercracky/ptt/pkg/utils"
+	"github.com/hashcracky/ptt/pkg/format"
+	"github.com/hashcracky/ptt/pkg/mask"
+	"github.com/hashcracky/ptt/pkg/rule"
+	"github.com/hashcracky/ptt/pkg/utils"
 )
 
 // ----------------------------------------------------------------------------

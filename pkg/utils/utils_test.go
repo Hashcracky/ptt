@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/jabbercracky/ptt/pkg/models"
+	"github.com/hashcracky/ptt/pkg/models"
 )
 
 // ----------------------------------------------------------------------------

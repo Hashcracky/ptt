@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/jabbercracky/ptt/pkg/utils"
+	"github.com/hashcracky/ptt/pkg/utils"
 	"launchpad.net/hcre"
 )
 

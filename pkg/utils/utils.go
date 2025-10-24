@@ -20,7 +20,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/jabbercracky/ptt/pkg/models"
+	"github.com/hashcracky/ptt/pkg/models"
 
 	"golang.org/x/net/html"
 	"golang.org/x/text/cases"
