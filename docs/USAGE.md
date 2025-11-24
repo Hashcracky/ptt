@@ -42,19 +42,19 @@ The output contains no duplicates and is sorted by frequency of occurrence. The 
 ### Installation
 From source with `go`:
 ```
-go install github.com/jakewnuk/ptt@latest
+go install github.com/hashcracky/ptt@latest
 ```
 From `git` clone then build with `go`:
 ```
-git clone https://github.com/JakeWnuk/ptt && cd ptt && go build ./main.go && mv ./main ~/go/bin/ptt && ptt
+git clone https://github.com/hashcracky/ptt && cd ptt && go build ./main.go && mv ./main ~/go/bin/ptt && ptt
 ```
 From `docker` with the program as the entry point:
 ```
-docker run -it -v ${PWD}:/data jwnuk/ptt
+docker run -it -v ${PWD}:/data ptt
 ``` 
 From `git` then build with `docker`:
 ```
-git clone https://github.com/JakeWnuk/ptt && cd ptt && docker build -t ptt . && docker run -it -v ${PWD}:/data ptt
+git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . && docker run -it -v ${PWD}:/data ptt
 ```
 ### Usage
 There are some additional notes when importing data and getting started:
@@ -72,8 +72,8 @@ There are some additional notes when importing data and getting started:
 - The `-tp` flag cannot be used with other transformations at the same time (`-t`).
 - The template file should contain a list of transformations and operations to apply
   to the input data. The template file should be in JSON format.
-    - See `docs/template.json` ([link](https://github.com/JakeWnuk/ptt/blob/main/docs/template.json)) for an example.
-    - See `templates/` ([link](https://github.com/JakeWnuk/ptt/blob/main/templates/)) for more examples.
+    - See `docs/template.json` ([link](https://github.com/hashcracky/ptt/blob/main/docs/template.json)) for an example.
+    - See `templates/` ([link](https://github.com/hashcracky/ptt/blob/main/templates/)) for more examples.
 - The `-f`, `-k`, `-r`, `-tf`, `-tp`, and `-u` flags can be used multiple times and have their collective values combined. The rest of the flags can only be used once. These flags work with files and directories.
 - The `-p` flag can be used to change the parsing mode for URLs. The default mode is `0` and will use a narrow character set to parse text from URLs. The `1` mode will use a larger character set to parse text from URLs and include additional parsing by default. The `2` mode will use the same character set as `1` but will also include additional parsing options for maximum parsing, including n-grams and other parsing options.
 - The `-i` and `-w` flags can also accept range values in the format of `start-end`. For example, `1-5` will print output for the transformation starting from index 1 to 5. For the `-w` flag, this will be the number of words the output will contain.
