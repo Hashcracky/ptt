@@ -12,10 +12,6 @@ import (
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-// ----------------------------------------------------------------------------
-// TransformationController
-// ----------------------------------------------------------------------------
-
 // TransformationController is the main entry point for the CLI
 // application. Operates a switch statement to determine the
 // mode to use.
@@ -138,16 +134,6 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 			os.Exit(1)
 		}
 		output = GenerateNGramMap(input, wordRangeStart, wordRangeEnd, bypass, functionDebug)
-	case "rule-apply", "apply":
-		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects a rule file to apply.\n")
-		if len(transformationFilesMap) == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Apply operations require use of one or more -tf flags to specify one or more files.\n")
-			os.Exit(1)
-		}
-		output = rule.ApplyRulesHCRE(input, transformationFilesMap, bypass, functionDebug)
-	case "rule-simplify", "simplify":
-		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects rule input to simplify.\n")
-		output = rule.SimplifyRules(input, bypass, functionDebug)
 	default:
 		output = input
 	}
@@ -159,10 +145,6 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 
 	return output
 }
-
-// ----------------------------------------------------------------------------
-// Generation Functions
-// ----------------------------------------------------------------------------
 
 // ReplaceKeysInMap takes a map of keys and values and replaces the keys
 // with replacements based on the replacement map. This is useful for

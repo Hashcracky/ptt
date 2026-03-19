@@ -15,7 +15,7 @@ import (
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-var version = "1.0.0"
+var version = "1.1.0"
 var wg sync.WaitGroup
 var mutex = &sync.Mutex{}
 var retain models.FileArgumentFlag
@@ -23,7 +23,6 @@ var remove models.FileArgumentFlag
 var readFiles models.FileArgumentFlag
 var readURLs models.FileArgumentFlag
 var transformationFiles models.FileArgumentFlag
-var templateFiles models.FileArgumentFlag
 var intRange models.IntRange
 var lenRange models.IntRange
 var wordRange models.IntRange
@@ -31,11 +30,10 @@ var primaryMap map[string]int
 var err error
 
 func main() {
-	// Parse command line arguments
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of Password Transformation Tool (ptt) version (%s):\n\n", version)
 		fmt.Fprintf(os.Stderr, "ptt [options] [...]\nAccepts standard input and/or additonal arguments.\n\n")
-		fmt.Fprintf(os.Stderr, "The -f, -k, -r, -tf, -tp, and -u flags can be used multiple times, together, and with files or directories.\n")
+		fmt.Fprintf(os.Stderr, "The -f, -k, -r, -tf, and -u flags can be used multiple times, together, and with files or directories.\n")
 		fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		fmt.Fprintf(os.Stderr, "These modify or filter the transformation mode.\n\n")
@@ -67,11 +65,8 @@ func main() {
 			"substring -i [index]":                  "Transforms input by extracting substrings starting at index and ending at index.",
 			"replace-all -tf [file]":                "Transforms input by replacing all strings with all matches from a ':' separated file.",
 			"regram -w [words]":                     "Transforms input by 'regramming' sentences into new n-grams with a given number of words.",
-			"rule-apply -tf [file]":                 "Transforms input by applying rules to strings using the HCRE library.",
-			"rule-simplify":                         "Transforms input by simplifying rules to efficient equivalents using the HCRE library.",
 		}
 
-		// Sort and print transformation modes
 		keys := make([]string, 0, len(modes))
 		for k := range modes {
 			keys = append(keys, k)
@@ -85,12 +80,10 @@ func main() {
 
 	}
 
-	// Define command line flags
 	verbose := flag.Bool("v", false, "Show verbose output when possible. (Can show additional metadata in some modes.)")
 	verbose2 := flag.Bool("vv", false, "Show statistics output when possible.")
 	verbose3 := flag.Bool("vvv", false, "Show verbose statistics output when possible.")
 	minimum := flag.Int("m", 0, "Minimum numerical frequency to include in output.")
-	markDownOutput := flag.Bool("md", false, "If Markdown format should be used for output instead.")
 	outputVerboseMax := flag.Int("n", 0, "Maximum number of items to return in output.")
 	transformation := flag.String("t", "", "Transformation to apply to input.")
 	replacementMask := flag.String("rm", "uldsbt", "Replacement mask for transformations if applicable.")
@@ -103,24 +96,20 @@ func main() {
 	flag.Var(&remove, "r", "Only keep items not in a file.")
 	flag.Var(&readFiles, "f", "Read additional files for input.")
 	flag.Var(&transformationFiles, "tf", "Read additional files for transformations if applicable.")
-	flag.Var(&templateFiles, "tp", "Read a template file for multiple transformations and operations. Cannot be used with -t flag.")
 	flag.Var(&intRange, "i", "Starting index for transformations if applicable. Accepts ranges separated by '-'.")
 	flag.Var(&lenRange, "l", "Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.")
 	flag.Var(&wordRange, "w", "Number of words for transformations if applicable. Accepts ranges separated by '-'.")
 	flag.Var(&readURLs, "u", "Read additional URLs for input.")
 	flag.Parse()
 
-	// Bypass map creation if requested
 	if *bypassMap {
 		fmt.Fprintf(os.Stderr, "[*] Bypassing map creation and using standard output as primary output. Options are disabled. This does not bypass the initial input memory usage.\n")
 	}
 
-	// Print debug information if requested
 	if *debugMode > 0 {
 		fmt.Fprintf(os.Stderr, "[*] Debug mode enabled with verbosity level %d.\n", *debugMode)
 	}
 
-	// Parse any retain, remove, or transformation file arguments
 	fs := &models.RealFileSystem{}
 	var retainMap map[string]int
 	var removeMap map[string]int
@@ -129,7 +118,6 @@ func main() {
 	doneLoad := make(chan bool)
 	go utils.TrackLoadTime(doneLoad, "Load")
 
-	// Read files if provided
 	if retain != nil || remove != nil || readFiles != nil || transformationFiles != nil {
 		fmt.Fprintf(os.Stderr, "[*] Reading files for input.\n")
 	}
@@ -147,14 +135,12 @@ func main() {
 		transformationFilesMap = utils.ReadFilesToMap(fs, transformationFiles)
 	}
 
-	transformationTemplateArray := utils.ReadJSONToArray(fs, templateFiles)
 	readURLsMap, err := utils.ReadURLsToMap(readURLs, *URLParsingMode, *debugMode)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[!] Error reading URLs: %s.\n", err)
 		return
 	}
 
-	// Read from stdin if provided
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		primaryMap, err = utils.LoadStdinToMap(bufio.NewScanner(os.Stdin))
@@ -164,7 +150,6 @@ func main() {
 		}
 	}
 
-	// Combine stdin with any additional files
 	if len(primaryMap) == 0 && len(readFilesMap) == 0 && len(readURLsMap) == 0 {
 		fmt.Fprintf(os.Stderr, "[!] No input provided. Exiting.\n")
 		return
@@ -182,72 +167,41 @@ func main() {
 	doneProcess := make(chan bool)
 	go utils.TrackLoadTime(doneProcess, "Processing")
 
-	// Apply transformation if provided
-	if *transformation != "" && templateFiles == nil {
+	if *transformation != "" {
 		primaryMap = transform.TransformationController(primaryMap, *transformation, intRange.Start, intRange.End, *verbose, *replacementMask, transformationFilesMap, *bypassMap, *debugMode, wordRange.Start, wordRange.End)
-	} else if templateFiles != nil && *transformation == "" {
-		fmt.Fprintf(os.Stderr, "[*] Using template files for multiple transformations.\n")
-
-		// Make a copy of the primary map to avoid modifying the original
-		temporaryMap := make(map[string]int)
-		for k, v := range primaryMap {
-			temporaryMap[k] = v
-		}
-
-		// Apply transformations from template files
-		for i, template := range transformationTemplateArray {
-			if i == 0 {
-				temporaryMap = transform.TransformationController(primaryMap, template.TransformationMode, template.StartIndex, template.EndIndex, template.Verbose, template.ReplacementMask, transformationFilesMap, template.Bypass, *debugMode, template.WordRangeStart, template.WordRangeEnd)
-			} else {
-				temporaryMap = utils.CombineMaps(temporaryMap, transform.TransformationController(primaryMap, template.TransformationMode, template.StartIndex, template.EndIndex, template.Verbose, template.ReplacementMask, transformationFilesMap, template.Bypass, *debugMode, template.WordRangeStart, template.WordRangeEnd))
-			}
-		}
-		primaryMap = temporaryMap
-
-	} else if *transformation != "" && templateFiles != nil {
-		fmt.Fprintf(os.Stderr, "[!] Transformation and template flags cannot be used together.\n")
-		return
 	}
 
 	doneProcess <- true
 	close(doneProcess)
 
-	// Print ignore case if provided
 	if *ignoreCase {
 		fmt.Fprintf(os.Stderr, "[*] Ignoring case when processing output.\n")
 	}
 
-	// Ignore case if provided
 	if *ignoreCase {
 		primaryMap = format.CreateIgnoreCaseMap(primaryMap)
 	}
 
-	// Print remove frequency if provided
 	if *minimum > 0 {
 		fmt.Fprintf(os.Stderr, "[*] Removing items with frequency less than %d.\n", *minimum)
 	}
 
-	// Remove items under minimum frequency if provided
 	if *minimum > 0 {
 		primaryMap = format.RemoveMinimumFrequency(primaryMap, *minimum)
 	}
 
-	// Print length range if provided
 	if lenRange.Start > 0 || lenRange.End > 0 {
 		fmt.Fprintf(os.Stderr, "[*] Only outputting items between %d and %d characters.\n", lenRange.Start, lenRange.End)
 	}
 
-	// Remove items outside of length range if provided
 	if lenRange.Start > 0 || lenRange.End > 0 {
 		primaryMap = format.RemoveLengthRange(primaryMap, lenRange.Start, lenRange.End)
 	}
 
-	// Print retained and removed items if provided
 	if len(retainMap) > 0 || len(removeMap) > 0 {
 		fmt.Fprintf(os.Stderr, "[*] Retain/remove flags provided. Retaining %d and removing %d items.\n", len(retainMap), len(removeMap))
 	}
 
-	// Process retain and remove maps if provided
 	if len(retainMap) > 0 || len(removeMap) > 0 {
 		primaryMap, err = format.RetainRemove(primaryMap, retainMap, removeMap, *debugMode)
 		if err != nil {
@@ -256,38 +210,24 @@ func main() {
 		}
 	}
 
-	// if -n is provided, filter ALL results to only that top amount
 	if *outputVerboseMax > 0 {
 		primaryMap = format.FilterTopN(primaryMap, *outputVerboseMax)
 	}
 
 	fmt.Fprintf(os.Stderr, "[*] Task complete with %d unique results.\n", len(primaryMap))
 
-	// Print in markdown if provided
-	if *markDownOutput {
-		command := "ptt "
-		for _, arg := range os.Args[1:] {
-			command += arg + " "
-		}
-
-		format.PrintArrayToMarkdown(primaryMap, command)
-	}
-
-	// Print output to stdout
-	if *verbose3 && !*markDownOutput {
+	if *verbose3 {
 		format.PrintStatsToSTDOUT(primaryMap, *verbose3, *outputVerboseMax)
-	} else if *verbose2 && !*markDownOutput {
+	} else if *verbose2 {
 		format.PrintStatsToSTDOUT(primaryMap, *verbose3, *outputVerboseMax)
-	} else if !*markDownOutput {
+	} else {
 		format.PrintArrayToSTDOUT(primaryMap, *verbose)
 	}
 
-	// Print output location if provided
 	if *jsonOutput != "" {
 		fmt.Fprintf(os.Stderr, "[*] Saving output to JSON file: %s.\n", *jsonOutput)
 	}
 
-	// Save output to JSON if provided
 	if *jsonOutput != "" {
 		err = format.SaveArrayToJSON(*jsonOutput, primaryMap)
 		if err != nil {

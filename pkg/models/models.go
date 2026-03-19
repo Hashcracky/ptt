@@ -8,13 +8,6 @@ import (
 	"strings"
 )
 
-// ----------------------------------------------------------------------------
-// Argument Flag Models
-// ----------------------------------------------------------------------------
-// These models are used to define the flags that are used in the command line
-// interface. The intention is to provide a way to define the flags can be used
-// for multiple file arguments.
-
 // FileArgumentFlag is a custom type that is used to store the file arguments
 type FileArgumentFlag []string
 
@@ -36,7 +29,7 @@ type IntRange struct {
 	Start, End int
 }
 
-// NewIntRange is used to create a new IntRange object
+// String is used to create a new IntRange object
 func (i *IntRange) String() string {
 	return fmt.Sprintf("%d-%d", i.Start, i.End)
 }
@@ -53,27 +46,6 @@ func (i *IntRange) Set(value string) error {
 	return nil
 }
 
-// TemplateFileOperation is used to store the transformation operations loaded
-// from JSON template files. The intention is to provide a way to define the
-// operations in a structured way.
-type TemplateFileOperation struct {
-	StartIndex         int
-	EndIndex           int
-	Verbose            bool
-	ReplacementMask    string
-	Bypass             bool
-	TransformationMode string
-	WordRangeStart     int
-	WordRangeEnd       int
-}
-
-// ----------------------------------------------------------------------------
-// Output Sorting Models
-// ----------------------------------------------------------------------------
-// These models are used to define the sorting options that are used to sort the
-// final output to the console. The intention is to provide a way to efficiently
-// sort the map[string]int that is used to store the word count in o(n log n) time.
-
 // Pair is used to store the key value pair of the map[string]int
 type Pair struct {
 	Key   string
@@ -86,13 +58,6 @@ type PairList []Pair
 func (p PairList) Len() int           { return len(p) }
 func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
-// ----------------------------------------------------------------------------
-// Unit Test Models
-// ----------------------------------------------------------------------------
-// These models are used to define the test cases that are used to test the
-// functions in the application. The intention is to provide a way to define
-// the test cases in a structured way.
 
 // FileSystem is an interface that is used to read files from the file system
 // This is used to allow the application to read files from the real file system

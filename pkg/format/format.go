@@ -49,35 +49,6 @@ func PrintArrayToSTDOUT(freq map[string]int, verbose bool) {
 	}
 }
 
-// PrintArrayToMarkdown prints an array of items to stdout in markdown format
-// including the item and the frequency.
-//
-// Args:
-// freq (map[string]int): A map of item frequencies
-// command (string): The command that was run
-//
-// Returns:
-// None
-func PrintArrayToMarkdown(freq map[string]int, command string) {
-
-	fmt.Println("| Item | Frequency |")
-	fmt.Println("| ---- | --------- |")
-
-	p := make(models.PairList, len(freq))
-	i := 0
-	for k, v := range freq {
-		p[i] = models.Pair{k, v}
-		i++
-	}
-	sort.Sort(sort.Reverse(p))
-	for _, pair := range p {
-		fmt.Printf("| %s | %d |\n", pair.Key, pair.Value)
-	}
-
-	fmt.Println(fmt.Sprintf("Command: %s\n", command))
-
-}
-
 // PrintStatsToSTDOUT prints statistics about the frequency map to stdout
 // including several statistics about the frequency map. If verbose is true,
 // additional information is printed and increased number of items are
