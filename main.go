@@ -80,6 +80,7 @@ func main() {
 	verbose2 := flag.Bool("vv", false, "Show statistics output when possible.")
 	verbose3 := flag.Bool("vvv", false, "Show verbose statistics output when possible.")
 	minimum := flag.Int("m", 0, "Minimum numerical frequency to include in output.")
+	minComplexity := flag.Int("mc", 0, "Minimum complexity score to include before processing (lowercase, uppercase, digits, specials, bytes) [1-5].")
 	outputVerboseMax := flag.Int("n", 0, "Maximum number of items to return in output.")
 	transformation := flag.String("t", "", "Transformation to apply to input.")
 	replacementMask := flag.String("rm", "uldsbt", "Replacement mask for transformations if applicable.")
@@ -151,6 +152,15 @@ func main() {
 	close(doneLoad)
 	fmt.Fprintf(os.Stderr, "[*] All input loaded.\n")
 	fmt.Fprintf(os.Stderr, "[*] Starting Processing.\n")
+
+	if *minComplexity > 0 {
+		fmt.Fprintf(os.Stderr, "[*] Filtering input items with complexity less than %d.\n", *minComplexity)
+		primaryMap = format.FilterByComplexity(primaryMap, *minComplexity)
+		if len(primaryMap) == 0 {
+			fmt.Fprintf(os.Stderr, "[!] No items remaining after complexity filter. Exiting.\n")
+			return
+		}
+	}
 
 	doneProcess := make(chan bool)
 	go utils.TrackLoadTime(doneProcess, "Processing")

@@ -532,6 +532,32 @@ func RemoveLengthRange(freq map[string]int, start int, end int) map[string]int {
 	return newFreq
 }
 
+// FilterByComplexity removes items from a map whose complexity score is
+// below the provided minimum threshold. Complexity is determined by masking
+// the plaintext with "uldbs" and scoring it with TestMaskComplexity, which
+// returns 1-5 based on character class diversity (lowercase, uppercase,
+// digits, specials, bytes).
+//
+// Args:
+//
+//	freq (map[string]int): A map of item frequencies
+//	minComplexity (int): The minimum complexity score to retain
+//
+// Returns:
+//
+//	(map[string]int): A new map containing only items meeting the threshold
+func FilterByComplexity(freq map[string]int, minComplexity int) map[string]int {
+	newFreq := make(map[string]int)
+	for key, value := range freq {
+		m := mask.MakeMaskedString(key, "uldbs")
+		complexity := mask.TestMaskComplexity(m)
+		if complexity >= minComplexity {
+			newFreq[key] = value
+		}
+	}
+	return newFreq
+}
+
 // FilterTopN removes all but the top N items from a map of item frequencies
 // and returns a new map
 //
