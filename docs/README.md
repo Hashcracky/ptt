@@ -1,12 +1,12 @@
- Password Transformation Tool (`ptt`) is a versatile utility designed for password cracking. It facilitates the creation of custom rules and transformations, as well as the generation of wordlists. This tool supports processing data from files, URLs, and standard input, streamlining cracking workflows.
+ Password Transformation Tool (`ptt`) is a versatile utility designed for password cracking. It facilitates the creation of custom rules and transformations, as well as the generation of wordlists. This tool supports processing data from files and standard input, streamlining cracking workflows.
 
 `PTT` is written in `Go`, is compatible with multiple platforms, and can be easily integrated into existing workflows. The tool is designed to be user-friendly and intuitive, with a wide range of features and options.
 
 ## Features:
-- **Multiple Input Sources:** Process data from files, URLs, and standard input. Accepts directories, files, and URLs as input. Use multiple flags to combine sources.
+- **Multiple Input Sources:** Process data from files and standard input. Accepts directories and files as input. Use multiple flags to combine sources.
 - **Deduplication and Frequency Filtering:** Remove duplicates and filter by
   frequency automatically.
-- **Output Formatting:** Output data in JSON format or Markdown for easy parsing and
+- **Output Formatting:** Output data in JSON format for easy parsing and
   analysis. Easily load and chain previous results for further processing.
 - **Debugging Mode:** Enable debug mode to display verbose output and
   statistics with multiple levels of verbosity.
@@ -19,13 +19,8 @@
 - **Mask Making:** Create `Hashcat` masks to mask, remove, retain, or swap characters
   in strings.
 - **Multibyte Support:** Support for multibyte characters in transformations.
-- **URL Parsing:** Parse URLs with strict, permissive, or maximum parsing
-  modes to create wordlists from URLs.
 - **Analysis Tools:** Analyze input data with statistics and verbose output.
-- **Template Files:** Use template files to apply multiple transformations and
-  operations to input data.
-- **Rule Application & Simplification:** Apply rules to input data and simplify
-  rules for optimization by using the [HCRE](https://git.launchpad.net/hcre/tree/README.md) library.
+- **Complexity Filtering:** Filter input items by password complexity score before processing.
 
 ## Getting Started:
 
@@ -50,12 +45,12 @@ git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . &
 ---
 ### Usage:
 ```
-Usage of Password Transformation Tool (ptt) version (1.0.0):
+Usage of Password Transformation Tool (ptt) version (1.1.0):
 
 ptt [options] [...]
 Accepts standard input and/or additonal arguments.
 
-The -f, -k, -r, -tf, -tp, and -u flags can be used multiple times, together, and with files or directories.
+The -f, -k, -r, and -tf flags can be used multiple times, together, and with files or directories.
 -------------------------------------------------------------------------------------------------------------
 Options:
 These modify or filter the transformation mode.
@@ -75,14 +70,12 @@ These modify or filter the transformation mode.
         Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.
   -m int
         Minimum numerical frequency to include in output.
-  -md
-        If Markdown format should be used for output instead.
+  -mc int
+        Minimum complexity score to include before processing (lowercase, uppercase, digits, specials, bytes) [1-5].
   -n int
         Maximum number of items to return in output.
   -o string
         Output to JSON file in addition to stdout. Accepts file names and paths.
-  -p int
-        Change parsing mode for URL input. [0 = Strict, 1 = Permissive, 2 = Maximum].
   -r value
         Only keep items not in a file.
   -rm string
@@ -91,10 +84,6 @@ These modify or filter the transformation mode.
         Transformation to apply to input.
   -tf value
         Read additional files for transformations if applicable.
-  -tp value
-        Read a template file for multiple transformations and operations. Cannot be used with -t flag.
-  -u value
-        Read additional URLs for input.
   -v    Show verbose output when possible. (Can show additional metadata in some modes.)
   -vv
         Show statistics output when possible.
@@ -130,14 +119,10 @@ These create or alter based on the selected mode.
         Transforms input by generating passphrases from sentences with a given number of words.
   -t regram -w [words]
         Transforms input by 'regramming' sentences into new n-grams with a given number of words.
-  -t replace-all -tf [file]
-        Transforms input by replacing all strings with all matches from a ':' separated file.
   -t rule-append
         Transforms input by creating append rules.
   -t rule-append-remove
         Transforms input by creating append-remove rules.
-  -t rule-apply -tf [file]
-        Transforms input by applying rules to strings using the HCRE library.
   -t rule-insert -i [index]
         Transforms input by creating insert rules starting at index.
   -t rule-overwrite -i [index]
@@ -148,13 +133,7 @@ These create or alter based on the selected mode.
         Transforms input by creating prepend-remove rules.
   -t rule-prepend-toggle
         Transforms input by creating prepend-toggle rules.
-  -t rule-simplify
-        Transforms input by simplifying rules to efficient equivalents using the HCRE library.
   -t rule-toggle -i [index]
         Transforms input by creating toggle rules starting at index.
-  -t substring -i [index]
-        Transforms input by extracting substrings starting at index and ending at index.
-  -t swap-single -tf [file]
-        Transforms input by swapping tokens once per string per replacement with exact matches from a ':' separated file.
 -------------------------------------------------------------------------------------------------------------
 ```

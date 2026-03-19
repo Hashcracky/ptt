@@ -1,5 +1,5 @@
 # Password Transformation Tool (PTT) Usage Guide
-> Version 1.0.0
+> Version 1.1.0
 ## Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -17,27 +17,22 @@
   - [Insert Rules](#insert-rules)
   - [Overwrite Rules](#overwrite-rules)
 - [Wordlist Creation Usage](#wordlist-creation-usage)
-  - [Direct Swapping](#direct-swapping)
-  - [Replacing Text and Characters](#replacing-text-and-characters)
   - [Token Popping](#token-popping)
   - [Token Swapping](#token-swapping)
   - [Passphrases](#passphrases)
 - [Misc. Transformation Usage](#misc-transformation-usage)
   - [Encoding and Decoding](#encoding-and-decoding)
   - [Hex and Dehex](#hex-and-dehex)
-  - [Substrings](#substrings)
   - [Regram](#regram)
-  - [Rule Application](#rule-application)
-  - [Rule Simplification](#rule-simplification)
 
 ## Introduction
 The Password Transformation Tool (PTT) is a command-line utility that allows users to transform passwords using various methods. This guide will provide instructions on how to install and use the tool.
 
 The tool was created as a complete solution for password transformation and is designed to be easy to use and flexible. PTT is designed around my previous tools, `maskcat`, `rulecat`, and `mode`, and offers many of the same features and capabilities with a more user-friendly interface and new functionality.
 
-The tool can read multiple inputs from standard input, files, or URLs and can read from multiple sources at the same time. The tool reads all input into a single data object and then processes the data object with the specified transformations.
+The tool can read multiple inputs from standard input or files and can read from multiple sources at the same time. The tool reads all input into a single data object and then processes the data object with the specified transformations.
 
-The output contains no duplicates and is sorted by frequency of occurrence. The output can be shown as is, with frequency counts, as a simple statistics report, or as a verbose statistics report. The tool also supports template files, loading directories and files, chaining input from multiple sessions, JSON output, debugging levels, and other quality of life features.
+The output contains no duplicates and is sorted by frequency of occurrence. The output can be shown as is, with frequency counts, as a simple statistics report, or as a verbose statistics report. The tool also supports loading directories and files, chaining input from multiple sessions, JSON output, debugging levels, and other quality of life features.
 
 ### Installation
 From source with `go`:
@@ -69,13 +64,8 @@ There are some additional notes when importing data and getting started:
   of debug output that can be used.
     - Level 1 will not print each iteration transformation but the overall input and output.
     - Level 2 will print each iteration transformation and the overall input and output.
-- The `-tp` flag cannot be used with other transformations at the same time (`-t`).
-- The template file should contain a list of transformations and operations to apply
-  to the input data. The template file should be in JSON format.
-    - See `docs/template.json` ([link](https://github.com/hashcracky/ptt/blob/main/docs/template.json)) for an example.
-    - See `templates/` ([link](https://github.com/hashcracky/ptt/blob/main/templates/)) for more examples.
-- The `-f`, `-k`, `-r`, `-tf`, `-tp`, and `-u` flags can be used multiple times and have their collective values combined. The rest of the flags can only be used once. These flags work with files and directories.
-- The `-p` flag can be used to change the parsing mode for URLs. The default mode is `0` and will use a narrow character set to parse text from URLs. The `1` mode will use a larger character set to parse text from URLs and include additional parsing by default. The `2` mode will use the same character set as `1` but will also include additional parsing options for maximum parsing, including n-grams and other parsing options.
+- The `-mc [1-5]` flag can be used to filter input items by complexity score before processing. The complexity score is based on the presence of lowercase, uppercase, digits, specials, and bytes.
+- The `-f`, `-k`, `-r`, and `-tf` flags can be used multiple times and have their collective values combined. The rest of the flags can only be used once. These flags work with files and directories.
 - The `-i` and `-w` flags can also accept range values in the format of `start-end`. For example, `1-5` will print output for the transformation starting from index 1 to 5. For the `-w` flag, this will be the number of words the output will contain.
 
 > [!CAUTION]
@@ -84,9 +74,8 @@ There are some additional notes when importing data and getting started:
 #### Input Formats:
 - `ptt < input.txt`: Read input from a file.
 - `cat input.txt | ptt`: Read input from standard input.
-- `ptt -u https://example.com/input.txt`: Read input from a URL.
 - `ptt -f input2.txt -f input3.txt -f input4.txt`: Read additional files for input.
-- `cat input2.txt | ptt -f input3.txt -u urls.txt`: Read input from standard input and additional files and URLs.
+- `cat input2.txt | ptt -f input3.txt`: Read input from standard input and additional files.
 #### Transformation Formats:
 - `ptt -t [transformation]`: Apply a transformation to input.
 - `ptt -tf file.txt -t [transformation]`: Read file input required for a transformation.
@@ -94,14 +83,14 @@ There are some additional notes when importing data and getting started:
 - `ptt -t [transformation] -rm ulds`: Apply a transformation with a custom mask. Default is all characters.
 - `ptt -t [transformation] -i 5`: Apply a transformation starting at a specific index.
 - `ptt -i 1-5 -t [transformation]`: Apply a transformation starting at a specific index.
-- `ptt -tp template.json`: Apply multiple transformations and operations from a template file.
 #### Filter Formats:
 - `ptt -k keep.txt`: Keep only items in a file.
 - `ptt -r remove.txt`: Keep only items not in a file.
 - `ptt -k keep.txt -r remove.txt`: Keep only items in a file and not in another.
-- `ppt -l 8`: Only allow items equal to a length for input.
-- `ppt -l 8-12`: Keep only items within a range of lengths for input.
+- `ptt -l 8`: Only allow items equal to a length for input.
+- `ptt -l 8-12`: Keep only items within a range of lengths for input.
 - `ptt -m 10`: Keep only items with a minimum frequency from output.
+- `ptt -mc 3`: Only include items with a complexity score of 3 or higher.
 #### Debug Formats:
 - `ptt -d 1`: Enable debug mode with verbosity level 1.
 - `ptt -d 2`: Enable debug mode with verbosity level 2.
@@ -111,7 +100,6 @@ There are some additional notes when importing data and getting started:
 - `ptt -vvv`: Show verbose statistics output.
 - `ptt -n 50`: Show verbose statistics output with a maximum of 50 items.
 - `ptt -o [FILE]`: Show output and save JSON output to a file.
-- `ptt -md`: Show output as a Markdown table.
 - `ptt -ic`: Ignore case when creating output and convert to lowercase.
 - These options are available for all transformations.
 #### Rockyou Examples:
@@ -368,28 +356,12 @@ ptt -f <input_file> -t rule-overwrite -i <index>
 Where `<index>` is the position where the string will be overwritten. If no index is provided, the string will be overwritten at the beginning of the password. The `<index>` can also accept range values in the format of `start-end`. For example, `1-5` will print output for the overwrite transformation starting from index 1 to 5.
 ## Wordlist Creation Usage
 There are several ways to generate wordlists using PTT:
-- `Direct Swapping`: Swapping characters directly with a `:` separated file.
-   This is implemented in the `swap-single` module.
-- `Replacing Text and Characters`: Replacing text and characters in a string.
-  This is implemented in the `replace` module
 - `Token Popping`: Generates tokens by popping strings at character boundaries.
   This is implemented in the `pop` module.
 - `Token Swapping`: Generates tokens by swapping characters in a string. This is
   implemented in the `mask-swap` module.
 - `Passphrases`: Generates passphrases by reforming sentences. This is implemented
   in the `passphrase` module.
-### Direct Swapping
-The `swap-single` module swaps characters directly with a `:` separated file. The syntax is as follows:
-```
-ptt -f <input-file> -t swap-single -tf <replacement-file>
-```
-The replacement file should contain the strings to be transformed as `PRIOR:POST` pairs. The replacements will be applied to all instances in each line, but only one swap is applied at a time. This mode is ideal for substituting words or characters in a string.
-### Replacing Text and Characters
-The `replace-all` module replaces text and characters in a string. This mode replaces all strings with all matches from a ':' separated file. The syntax is as follows:
-```
-ptt -f <input-file> -t replace-all -tf <replacement-file>
-```
-The replacement file should contain the strings to be transformed as `PRIOR:POST` pairs. The replacements will be applied to all instances in each line, and all replacements will be applied to the string. This mode is ideal for replacing all instances of a word or character in a string.
 ### Token Popping
 The `pop` module generates tokens by popping strings at character boundaries. The syntax is as follows:
 ```
@@ -457,7 +429,6 @@ The `passphrase` mode will generate new passphrases from the input by reformatti
 There are several types that can be created using PTT:
 - `Encoding and Decoding`: This transforms input to and from HTML and Unicode escaped strings.
 - `Hex and Dehex`: This transforms input to and from `$HEX[....]` strings.
-- `Substrings`: This extracts substrings from the input based on position.
 ### Encoding and Decoding
 This mode allows encoding and decoding of input to and from HTML and Unicode escaped strings.
 The syntax is as follows:
@@ -485,32 +456,9 @@ The following table shows the supported transformations:
 | --- | --- | --- | --- |
 | `hex` | Hex encoding | `Hello` | `$HEX[48656c6c6f]` |
 | `dehex` | Hex decoding | `$HEX[48656c6c6f]` | `Hello` |
-### Substrings
-This mode allows extracting substrings from the input based on position. The syntax is as follows:
-```
-ptt -f <input_file> -t substring -i <start_index>
-```
-This transformation extracts the substring from the input based on the provided index. If the end index is greater than the length of the input, it will be changed to the length of the input.
-
-This transformation can be used to extract specific parts of the input for
-further processing.
 ### Regram
 This mode allows 'regramming' sentences into new n-grams with a given number of words. The syntax is as follows:
 ```
 ptt -f <input_file> -t regram -w <word_count>
 ```
 The `regram` transformation will generate new n-grams from the input by combining words from the input. The number of words to use in the n-gram is specified by the `-w` flag. The output will be the new n-grams generated from the input.
-
-### Rule Application
-This mode allows applying rules to the input. The syntax is as follows:
-```
-ptt -f <input_file> -t rule-apply -tf <rule_file>
-```
-The `rule-apply` transformation will apply rules from the rule file to the input. The rule file should contain the rules to be applied to the input. The output will be the input with the rules applied. This feature is enabled by the work done on the [HCRE](https://git.launchpad.net/hcre/tree/README.md) project. Please consider visiting and supporting the project.
-
-### Rule Simplification
-This mode allows simplifying rules from the input. The syntax is as follows:
-```
-ptt -f <input_file> -t rule-simplify
-```
-The `rule-simplify` transformation will simplify rules from the input. The output will be the simplified rules equivalent to the input. This feature is enabled by the work done on the [HCRE](https://git.launchpad.net/hcre/tree/README.md) project. Please consider visiting and supporting the project.

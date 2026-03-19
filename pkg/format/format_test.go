@@ -14,6 +14,7 @@ import (
 // - RemoveMinimumFrequency()
 // - RemoveLengthRange()
 // - FilterTopN()
+// - FilterByComplexity()
 //
 // ** Encoding Functions **
 // - EncodeInputMap()
@@ -385,6 +386,49 @@ func TestHexEncodeMap(t *testing.T) {
 		result := HexEncodeMap(test.input, false, false)
 		if utils.CheckAreMapsEqual(result, test.output) == false {
 			t.Errorf("HexEncodeMap() failed - expected: %v, got: %v", test.output, result)
+		}
+	}
+}
+
+func TestFilterByComplexity(t *testing.T) {
+	type testCase struct {
+		input         map[string]int
+		minComplexity int
+		expected      map[string]int
+	}
+
+	tests := []testCase{
+		{
+			input:         map[string]int{"test": 1, "Test1": 2, "Test1!": 3},
+			minComplexity: 1,
+			expected:      map[string]int{"test": 1, "Test1": 2, "Test1!": 3},
+		},
+		{
+			input:         map[string]int{"test": 1, "Test1": 2, "Test1!": 3},
+			minComplexity: 2,
+			expected:      map[string]int{"Test1": 2, "Test1!": 3},
+		},
+		{
+			input:         map[string]int{"test": 1, "Test1": 2, "Test1!": 3},
+			minComplexity: 3,
+			expected:      map[string]int{"Test1": 2, "Test1!": 3},
+		},
+		{
+			input:         map[string]int{"test": 1, "Test1": 2, "Test1!": 3},
+			minComplexity: 4,
+			expected:      map[string]int{"Test1!": 3},
+		},
+	}
+
+	for _, test := range tests {
+		output := FilterByComplexity(test.input, test.minComplexity)
+		if len(output) != len(test.expected) {
+			t.Errorf("Test failed: minComplexity=%d, expected %d items, got %d", test.minComplexity, len(test.expected), len(output))
+		}
+		for k, v := range test.expected {
+			if output[k] != v {
+				t.Errorf("Test failed: key=%s, expected value=%d, got value=%d", k, v, output[k])
+			}
 		}
 	}
 }

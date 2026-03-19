@@ -49,35 +49,6 @@ func PrintArrayToSTDOUT(freq map[string]int, verbose bool) {
 	}
 }
 
-// PrintArrayToMarkdown prints an array of items to stdout in markdown format
-// including the item and the frequency.
-//
-// Args:
-// freq (map[string]int): A map of item frequencies
-// command (string): The command that was run
-//
-// Returns:
-// None
-func PrintArrayToMarkdown(freq map[string]int, command string) {
-
-	fmt.Println("| Item | Frequency |")
-	fmt.Println("| ---- | --------- |")
-
-	p := make(models.PairList, len(freq))
-	i := 0
-	for k, v := range freq {
-		p[i] = models.Pair{k, v}
-		i++
-	}
-	sort.Sort(sort.Reverse(p))
-	for _, pair := range p {
-		fmt.Printf("| %s | %d |\n", pair.Key, pair.Value)
-	}
-
-	fmt.Println(fmt.Sprintf("Command: %s\n", command))
-
-}
-
 // PrintStatsToSTDOUT prints statistics about the frequency map to stdout
 // including several statistics about the frequency map. If verbose is true,
 // additional information is printed and increased number of items are
@@ -556,6 +527,32 @@ func RemoveLengthRange(freq map[string]int, start int, end int) map[string]int {
 			if len(key) >= start && len(key) <= end {
 				newFreq[key] = value
 			}
+		}
+	}
+	return newFreq
+}
+
+// FilterByComplexity removes items from a map whose complexity score is
+// below the provided minimum threshold. Complexity is determined by masking
+// the plaintext with "uldbs" and scoring it with TestMaskComplexity, which
+// returns 1-5 based on character class diversity (lowercase, uppercase,
+// digits, specials, bytes).
+//
+// Args:
+//
+//	freq (map[string]int): A map of item frequencies
+//	minComplexity (int): The minimum complexity score to retain
+//
+// Returns:
+//
+//	(map[string]int): A new map containing only items meeting the threshold
+func FilterByComplexity(freq map[string]int, minComplexity int) map[string]int {
+	newFreq := make(map[string]int)
+	for key, value := range freq {
+		m := mask.MakeMaskedString(key, "uldbs")
+		complexity := mask.TestMaskComplexity(m)
+		if complexity >= minComplexity {
+			newFreq[key] = value
 		}
 	}
 	return newFreq

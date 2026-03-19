@@ -1,5 +1,3 @@
-// Package rule contains the transformation logic to convert input into Hashcat
-// rules
 package rule
 
 import (
@@ -10,14 +8,38 @@ import (
 	"unicode"
 
 	"github.com/hashcracky/ptt/pkg/utils"
-	"launchpad.net/hcre"
 )
 
-// ----------------------------------------------------------------------------
-// Transformation Functions
-// ----------------------------------------------------------------------------
+const hexDigits = "0123456789ABCDEF"
 
-// LenToRule converts a string to a rule by its length
+// shouldEncodeAsHex reports whether a rune in a plaintext input must be
+// hex-encoded in Hashcat rule syntax to avoid delimiter ambiguity.
+// This applies to multi-byte characters (>127), spaces, and tabs.
+//
+// Args:
+//
+//	r (rune): Character to check.
+//
+// Returns:
+//
+//	(bool): True if the character requires hex encoding.
+func shouldEncodeAsHex(r rune) bool {
+	return r > 127 || r == ' ' || r == '\t'
+}
+
+// writeHexByte writes a single byte in \xHH notation into b.
+//
+// Args:
+//
+//	b (*strings.Builder): Destination builder.
+//	bt (byte): The byte to encode.
+func writeHexByte(b *strings.Builder, bt byte) {
+	b.WriteString("\\x")
+	b.WriteByte(hexDigits[bt>>4])
+	b.WriteByte(hexDigits[bt&0x0f])
+}
+
+// LenToRule converts a string to a rule by its length.
 //
 // Args:
 //
@@ -31,7 +53,11 @@ func LenToRule(str string, rule string) string {
 	return strings.TrimSpace(strings.Repeat(rule+" ", len(str)))
 }
 
-// CharToRule converts a string to a rule by its characters
+// CharToRule converts a string to a rule by its characters, encoding spaces,
+// tabs, and multi-byte characters as \xHH hex sequences. When the rule
+// operator is "^" (prepend), the bytes within each hex-encoded character are
+// emitted in reverse order so that Hashcat reconstructs the correct byte
+// sequence when prepending each byte to position 0.
 //
 // Args:
 //
@@ -42,11 +68,46 @@ func LenToRule(str string, rule string) string {
 //
 //	(string): Transformed string
 func CharToRule(str string, rule string) string {
-	return rule + strings.Join(strings.Split(str, ""), " "+rule)
+	var b strings.Builder
+	first := true
+
+	for _, r := range str {
+		if !first {
+			b.WriteByte(' ')
+		}
+		first = false
+
+		if shouldEncodeAsHex(r) {
+			bytes := []byte(string(r))
+			if rule == "^" {
+				for i := len(bytes) - 1; i >= 0; i-- {
+					if i < len(bytes)-1 {
+						b.WriteByte(' ')
+					}
+					b.WriteString(rule)
+					writeHexByte(&b, bytes[i])
+				}
+			} else {
+				for i, bt := range bytes {
+					if i > 0 {
+						b.WriteByte(' ')
+					}
+					b.WriteString(rule)
+					writeHexByte(&b, bt)
+				}
+			}
+		} else {
+			b.WriteString(rule)
+			b.WriteRune(r)
+		}
+	}
+
+	return b.String()
 }
 
 // CharToIteratingRule converts a string to a rule by its characters but
-// increments along with each character
+// increments along with each character, encoding spaces, tabs, and multi-byte
+// characters as \xHH hex sequences with correct position tracking.
 //
 // Args:
 //
@@ -58,18 +119,40 @@ func CharToRule(str string, rule string) string {
 //
 //	(string): Transformed string
 func CharToIteratingRule(str string, rule string, index int) string {
-	var result strings.Builder
-	for i, r := range str {
-		if i+index < 10 {
-			result.WriteString(fmt.Sprintf("%s%d%c ", rule, i+index, r))
-		} else if i+index-10 < 26 {
-			result.WriteString(fmt.Sprintf("%s%c%c ", rule, 'A'+i+index-10, r))
+	var b strings.Builder
+	currentPos := index
+
+	for _, r := range str {
+		if shouldEncodeAsHex(r) {
+			for _, bt := range []byte(string(r)) {
+				if currentPos < 10 {
+					b.WriteString(rule)
+					b.WriteByte(byte('0' + currentPos))
+					writeHexByte(&b, bt)
+					b.WriteByte(' ')
+				} else if currentPos-10 < 26 {
+					b.WriteString(rule)
+					b.WriteByte(byte('A' + currentPos - 10))
+					writeHexByte(&b, bt)
+					b.WriteByte(' ')
+				}
+				currentPos++
+			}
+		} else {
+			if currentPos < 10 {
+				b.WriteString(fmt.Sprintf("%s%d%c ", rule, currentPos, r))
+			} else if currentPos-10 < 26 {
+				b.WriteString(fmt.Sprintf("%s%c%c ", rule, 'A'+currentPos-10, r))
+			}
+			currentPos++
 		}
 	}
-	return strings.TrimSpace(result.String())
+
+	return strings.TrimSpace(b.String())
 }
 
-// StringToToggleRule converts a string to toggle rules by looking for upper chars
+// StringToToggleRule converts a string to toggle rules by looking for upper
+// chars.
 //
 // Args:
 //
@@ -94,12 +177,8 @@ func StringToToggleRule(str string, rule string, index int) string {
 	return strings.TrimSpace(result.String())
 }
 
-// ----------------------------------------------------------------------------
-// Output Functions
-// ----------------------------------------------------------------------------
-
 // FormatCharToRuleOutput handles formatting of rule output
-// for CharToRule functions
+// for CharToRule functions.
 //
 // Args:
 //
@@ -118,7 +197,6 @@ func FormatCharToRuleOutput(strs ...string) (output string) {
 		}
 	}
 
-	// if the string ends in '$ ' add a ':' to the end
 	if strings.HasSuffix(output, "$  ") {
 		output = output[:len(output)-1] + ":"
 	}
@@ -131,7 +209,7 @@ func FormatCharToRuleOutput(strs ...string) (output string) {
 }
 
 // FormatCharToIteratingRuleOutput handles formatting of rule output
-// for CharToIteratingRule functions
+// for CharToIteratingRule functions.
 //
 // Args:
 //
@@ -152,7 +230,6 @@ func FormatCharToIteratingRuleOutput(index int, strs ...string) (output string) 
 	}
 
 	if len(output)-3 >= 0 {
-		// allow for the last character to be a space for overwrite and insert rules
 		if output[len(output)-3:len(output)-2] == "o" || output[len(output)-3:len(output)-2] == "i" {
 			output = output + ":"
 		}
@@ -165,7 +242,7 @@ func FormatCharToIteratingRuleOutput(index int, strs ...string) (output string) 
 	return ""
 }
 
-// AppendRules transforms input into append rules
+// AppendRules transforms input into append rules.
 //
 // Args:
 //
@@ -176,11 +253,10 @@ func FormatCharToIteratingRuleOutput(index int, strs ...string) (output string) 
 //
 // Returns:
 //
-// returnMap (map[string]int): Map of items to return
+//	returnMap (map[string]int): Map of items to return
 func AppendRules(items map[string]int, operation string, bypass bool, debug bool) (returnMap map[string]int) {
 	returnMap = make(map[string]int)
 	switch operation {
-	// remove will remove characters then append
 	case "rule-append-remove", "append-remove":
 		for key, value := range items {
 			if len(key) > 15 {
@@ -230,7 +306,7 @@ func AppendRules(items map[string]int, operation string, bypass bool, debug bool
 	}
 }
 
-// PrependRules transforms input into prepend rules
+// PrependRules transforms input into prepend rules.
 //
 // Args:
 //
@@ -245,7 +321,6 @@ func AppendRules(items map[string]int, operation string, bypass bool, debug bool
 func PrependRules(items map[string]int, operation string, bypass bool, debug bool) (returnMap map[string]int) {
 	returnMap = make(map[string]int)
 	switch operation {
-	// remove will remove characters then prepend
 	case "rule-prepend-remove", "prepend-remove":
 		for key, value := range items {
 			if len(key) > 15 {
@@ -316,7 +391,7 @@ func PrependRules(items map[string]int, operation string, bypass bool, debug boo
 	}
 }
 
-// InsertRules transforms input into insert rules by index
+// InsertRules transforms input into insert rules by index.
 //
 // Args:
 //
@@ -327,22 +402,14 @@ func PrependRules(items map[string]int, operation string, bypass bool, debug boo
 //	debug (bool): If true, print additional debug information to stderr
 //
 // Returns:
-// returnMap (map[string]int): Map of items to return
+//
+//	returnMap (map[string]int): Map of items to return
 func InsertRules(items map[string]int, index string, end string, bypass bool, debug bool) (returnMap map[string]int) {
 	returnMap = make(map[string]int)
-	i, err := strconv.Atoi(index)
-	if err != nil {
-		fmt.Printf("[!] Error: %s\n", err)
-		os.Exit(1)
-	}
+	startIndex, _ := strconv.Atoi(index)
+	endIndex, _ := strconv.Atoi(end)
 
-	e, err := strconv.Atoi(end)
-	if err != nil {
-		fmt.Printf("[!] Error: %s\n", err)
-		os.Exit(1)
-	}
-
-	for i < e+1 {
+	for i := startIndex; i <= endIndex; i++ {
 		for key, value := range items {
 			rule := CharToIteratingRule(key, "i", i)
 			insertRule := FormatCharToIteratingRuleOutput(i, rule)
@@ -360,39 +427,29 @@ func InsertRules(items map[string]int, index string, end string, bypass bool, de
 				fmt.Println(insertRule)
 			}
 		}
-		i++
 	}
 	return returnMap
 }
 
-// OverwriteRules transforms input into overwrite rules by index
+// OverwriteRules transforms input into overwrite rules by index.
 //
 // Args:
 //
-// items (map[string]int): Items to use in the operation
-// index (string): Index to overwrite at
-// end (string): Index to end at
-// bypass (bool): If true, the map is not used for output or filtering
-// debug (bool): If true, print additional debug information to stderr
+//	items (map[string]int): Items to use in the operation
+//	index (string): Index to overwrite at
+//	end (string): Index to end at
+//	bypass (bool): If true, the map is not used for output or filtering
+//	debug (bool): If true, print additional debug information to stderr
 //
 // Returns:
 //
 //	returnMap (map[string]int): Map of items to return
 func OverwriteRules(items map[string]int, index string, end string, bypass bool, debug bool) (returnMap map[string]int) {
 	returnMap = make(map[string]int)
-	i, err := strconv.Atoi(index)
-	if err != nil {
-		fmt.Printf("[!] Error: %s\n", err)
-		os.Exit(1)
-	}
+	startIndex, _ := strconv.Atoi(index)
+	endIndex, _ := strconv.Atoi(end)
 
-	e, err := strconv.Atoi(end)
-	if err != nil {
-		fmt.Printf("[!] Error: %s\n", err)
-		os.Exit(1)
-	}
-
-	for i < e+1 {
+	for i := startIndex; i <= endIndex; i++ {
 		for key, value := range items {
 			rule := CharToIteratingRule(key, "o", i)
 			overwriteRule := FormatCharToIteratingRuleOutput(i, rule)
@@ -410,17 +467,16 @@ func OverwriteRules(items map[string]int, index string, end string, bypass bool,
 				fmt.Println(overwriteRule)
 			}
 		}
-		i++
 	}
 	return returnMap
 }
 
-// ToggleRules transforms input into  toggle rules starting at an index
+// ToggleRules transforms input into toggle rules by index.
 //
 // Args:
 //
 //	items (map[string]int): Items to use in the operation
-//	index (string): Index to start at
+//	index (string): Index to toggle at
 //	end (string): Index to end at
 //	bypass (bool): If true, the map is not used for output or filtering
 //	debug (bool): If true, print additional debug information to stderr
@@ -430,28 +486,12 @@ func OverwriteRules(items map[string]int, index string, end string, bypass bool,
 //	returnMap (map[string]int): Map of items to return
 func ToggleRules(items map[string]int, index string, end string, bypass bool, debug bool) (returnMap map[string]int) {
 	returnMap = make(map[string]int)
-	i, err := strconv.Atoi(index)
-	if err != nil {
-		fmt.Printf("[!] Error: %s\n", err)
-		os.Exit(1)
-	}
+	startIndex, _ := strconv.Atoi(index)
+	endIndex, _ := strconv.Atoi(end)
 
-	e, err := strconv.Atoi(end)
-	if err != nil {
-		fmt.Printf("[!] Error: %s\n", err)
-		os.Exit(1)
-	}
-
-	for i < e+1 {
+	for i := startIndex; i <= endIndex; i++ {
 		for key, value := range items {
-			// if the key is all uppercase just set it to "u"
-			rule := ""
-			if strings.ToUpper(key) == key {
-				rule = "u"
-			} else {
-				rule = StringToToggleRule(key, "T", i)
-			}
-
+			rule := StringToToggleRule(key, "T", i)
 			toggleRule := FormatCharToIteratingRuleOutput(i, rule)
 
 			if debug {
@@ -466,84 +506,6 @@ func ToggleRules(items map[string]int, index string, end string, bypass bool, de
 			} else if toggleRule != "" && bypass {
 				fmt.Println(toggleRule)
 			}
-		}
-
-		i++
-	}
-	return returnMap
-}
-
-// ApplyRulesHCRE uses the HCRE library to apply rules to a map of items
-// and returns the results
-//
-// Args:
-// items (map[string]int): Items to use in the operation
-// rules (map[string]int): Rules to use in the operation
-// bypass (bool): If true, the map is not used for output or filtering
-// debug (bool): If true, print additional debug information to stderr
-//
-// Returns:
-// returnMap (map[string]int): Map of items to return
-func ApplyRulesHCRE(items map[string]int, rules map[string]int, bypass bool, debug bool) (returnMap map[string]int) {
-	returnMap = make(map[string]int)
-	for key, value := range items {
-		for rule, _ := range rules {
-
-			rr, err := hcre.Compile(rule)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[!] Error: %s\n", err)
-				os.Exit(1)
-			}
-			applyRule := rr.Apply([]byte(key))
-
-			if debug {
-				fmt.Fprintf(os.Stderr, "[?] ApplyRulesHCRE:\n")
-				fmt.Fprintf(os.Stderr, "Key: %s\n", key)
-				fmt.Fprintf(os.Stderr, "Rule: %s\n", rule)
-				fmt.Fprintf(os.Stderr, "ApplyRule: %s\n", applyRule)
-			}
-
-			if applyRule != nil && !bypass {
-				returnMap[string(applyRule)] = value
-			} else if applyRule != nil && bypass {
-				fmt.Println(string(applyRule))
-			}
-		}
-	}
-	return returnMap
-}
-
-// SimplifyRules simplifies rules by simplifying rules to optimized equivalents
-// using the HCRE library
-//
-// Args:
-// items (map[string]int): Items to use in the operation
-// bypass (bool): If true, the map is not used for output or filtering
-// debug (bool): If true, print additional debug information to stderr
-//
-// Returns:
-// returnMap (map[string]int): Map of items to return
-func SimplifyRules(items map[string]int, bypass bool, debug bool) (returnMap map[string]int) {
-	returnMap = make(map[string]int)
-	for key, value := range items {
-
-		rr, err := hcre.Compile(key)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[!] Error: %s\n", err)
-			os.Exit(1)
-		}
-		simplifyRule := rr.Simplify().String()
-
-		if debug {
-			fmt.Fprintf(os.Stderr, "[?] SimplifyRules:\n")
-			fmt.Fprintf(os.Stderr, "Key: %s\n", key)
-			fmt.Fprintf(os.Stderr, "SimplifyRule: %s\n", simplifyRule)
-		}
-
-		if simplifyRule != "" && !bypass {
-			returnMap[simplifyRule] = value
-		} else if simplifyRule != "" && bypass {
-			fmt.Println(simplifyRule)
 		}
 	}
 	return returnMap
