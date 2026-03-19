@@ -234,8 +234,8 @@ func ReverseString(s string) string {
 	return string(runes)
 }
 
-// ConvertMultiByteCharToRule converts non-ascii characters to a hashcat valid format
-// for rule.CharToRule functions
+// ConvertMultiByteCharToRule converts non-ascii characters to a hashcat valid
+// format for rule.CharToRule functions.
 //
 // Args:
 //
@@ -306,8 +306,8 @@ func IncrementIteratingRuleCall(s string) string {
 	return output
 }
 
-// ConvertMultiByteCharToIteratingRule converts non-ascii characters to a hashcat valid format
-// for rule.CharToIteratingRule functions
+// ConvertMultiByteCharToIteratingRule converts non-ascii characters to a
+// hashcat valid format for rule.CharToIteratingRule functions.
 //
 // Args:
 //
@@ -326,10 +326,8 @@ func ConvertMultiByteCharToIteratingRule(index int, str string) string {
 	for _, word := range strings.Split(str, " ") {
 		for _, c := range word {
 			if c > 127 {
-				// Convert to UTF-8 bytes
 				bytes := []byte(string(c))
 				firstByteOut := true
-				// Convert each byte to its hexadecimal representation
 				for i, b := range bytes {
 					if firstByteOut {
 						output += fmt.Sprintf("\\x%X ", b)
@@ -377,6 +375,7 @@ func SplitBySeparatorString(s string, sep string) []string {
 	parts = append(parts[:1], append([]string{sep}, parts[1:]...)...)
 	return parts
 }
+
 // GenerateNGrams generates n-grams from a string of text
 // and returns a slice of n-grams
 //
@@ -461,7 +460,7 @@ func GeneratePassphrase(text string, n int) []string {
 // Validation Functions
 // ----------------------------------------------------------------------------
 
-// CheckASCIIString checks to see if a string only contains ascii characters
+// CheckASCIIString checks to see if a string only contains ascii characters.
 //
 // Args:
 //

@@ -1,5 +1,3 @@
-// Package rule contains the transformation logic to convert input into Hashcat
-// rules
 package rule
 
 import (
@@ -12,7 +10,36 @@ import (
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-// LenToRule converts a string to a rule by its length
+const hexDigits = "0123456789ABCDEF"
+
+// shouldEncodeAsHex reports whether a rune in a plaintext input must be
+// hex-encoded in Hashcat rule syntax to avoid delimiter ambiguity.
+// This applies to multi-byte characters (>127), spaces, and tabs.
+//
+// Args:
+//
+//	r (rune): Character to check.
+//
+// Returns:
+//
+//	(bool): True if the character requires hex encoding.
+func shouldEncodeAsHex(r rune) bool {
+	return r > 127 || r == ' ' || r == '\t'
+}
+
+// writeHexByte writes a single byte in \xHH notation into b.
+//
+// Args:
+//
+//	b (*strings.Builder): Destination builder.
+//	bt (byte): The byte to encode.
+func writeHexByte(b *strings.Builder, bt byte) {
+	b.WriteString("\\x")
+	b.WriteByte(hexDigits[bt>>4])
+	b.WriteByte(hexDigits[bt&0x0f])
+}
+
+// LenToRule converts a string to a rule by its length.
 //
 // Args:
 //
@@ -26,7 +53,11 @@ func LenToRule(str string, rule string) string {
 	return strings.TrimSpace(strings.Repeat(rule+" ", len(str)))
 }
 
-// CharToRule converts a string to a rule by its characters
+// CharToRule converts a string to a rule by its characters, encoding spaces,
+// tabs, and multi-byte characters as \xHH hex sequences. When the rule
+// operator is "^" (prepend), the bytes within each hex-encoded character are
+// emitted in reverse order so that Hashcat reconstructs the correct byte
+// sequence when prepending each byte to position 0.
 //
 // Args:
 //
@@ -37,11 +68,46 @@ func LenToRule(str string, rule string) string {
 //
 //	(string): Transformed string
 func CharToRule(str string, rule string) string {
-	return rule + strings.Join(strings.Split(str, ""), " "+rule)
+	var b strings.Builder
+	first := true
+
+	for _, r := range str {
+		if !first {
+			b.WriteByte(' ')
+		}
+		first = false
+
+		if shouldEncodeAsHex(r) {
+			bytes := []byte(string(r))
+			if rule == "^" {
+				for i := len(bytes) - 1; i >= 0; i-- {
+					if i < len(bytes)-1 {
+						b.WriteByte(' ')
+					}
+					b.WriteString(rule)
+					writeHexByte(&b, bytes[i])
+				}
+			} else {
+				for i, bt := range bytes {
+					if i > 0 {
+						b.WriteByte(' ')
+					}
+					b.WriteString(rule)
+					writeHexByte(&b, bt)
+				}
+			}
+		} else {
+			b.WriteString(rule)
+			b.WriteRune(r)
+		}
+	}
+
+	return b.String()
 }
 
 // CharToIteratingRule converts a string to a rule by its characters but
-// increments along with each character
+// increments along with each character, encoding spaces, tabs, and multi-byte
+// characters as \xHH hex sequences with correct position tracking.
 //
 // Args:
 //
@@ -53,18 +119,40 @@ func CharToRule(str string, rule string) string {
 //
 //	(string): Transformed string
 func CharToIteratingRule(str string, rule string, index int) string {
-	var result strings.Builder
-	for i, r := range str {
-		if i+index < 10 {
-			result.WriteString(fmt.Sprintf("%s%d%c ", rule, i+index, r))
-		} else if i+index-10 < 26 {
-			result.WriteString(fmt.Sprintf("%s%c%c ", rule, 'A'+i+index-10, r))
+	var b strings.Builder
+	currentPos := index
+
+	for _, r := range str {
+		if shouldEncodeAsHex(r) {
+			for _, bt := range []byte(string(r)) {
+				if currentPos < 10 {
+					b.WriteString(rule)
+					b.WriteByte(byte('0' + currentPos))
+					writeHexByte(&b, bt)
+					b.WriteByte(' ')
+				} else if currentPos-10 < 26 {
+					b.WriteString(rule)
+					b.WriteByte(byte('A' + currentPos - 10))
+					writeHexByte(&b, bt)
+					b.WriteByte(' ')
+				}
+				currentPos++
+			}
+		} else {
+			if currentPos < 10 {
+				b.WriteString(fmt.Sprintf("%s%d%c ", rule, currentPos, r))
+			} else if currentPos-10 < 26 {
+				b.WriteString(fmt.Sprintf("%s%c%c ", rule, 'A'+currentPos-10, r))
+			}
+			currentPos++
 		}
 	}
-	return strings.TrimSpace(result.String())
+
+	return strings.TrimSpace(b.String())
 }
 
-// StringToToggleRule converts a string to toggle rules by looking for upper chars
+// StringToToggleRule converts a string to toggle rules by looking for upper
+// chars.
 //
 // Args:
 //
@@ -90,7 +178,7 @@ func StringToToggleRule(str string, rule string, index int) string {
 }
 
 // FormatCharToRuleOutput handles formatting of rule output
-// for CharToRule functions
+// for CharToRule functions.
 //
 // Args:
 //
@@ -121,7 +209,7 @@ func FormatCharToRuleOutput(strs ...string) (output string) {
 }
 
 // FormatCharToIteratingRuleOutput handles formatting of rule output
-// for CharToIteratingRule functions
+// for CharToIteratingRule functions.
 //
 // Args:
 //
@@ -154,7 +242,7 @@ func FormatCharToIteratingRuleOutput(index int, strs ...string) (output string) 
 	return ""
 }
 
-// AppendRules transforms input into append rules
+// AppendRules transforms input into append rules.
 //
 // Args:
 //
@@ -218,7 +306,7 @@ func AppendRules(items map[string]int, operation string, bypass bool, debug bool
 	}
 }
 
-// PrependRules transforms input into prepend rules
+// PrependRules transforms input into prepend rules.
 //
 // Args:
 //
@@ -303,7 +391,7 @@ func PrependRules(items map[string]int, operation string, bypass bool, debug boo
 	}
 }
 
-// InsertRules transforms input into insert rules by index
+// InsertRules transforms input into insert rules by index.
 //
 // Args:
 //
@@ -343,7 +431,7 @@ func InsertRules(items map[string]int, index string, end string, bypass bool, de
 	return returnMap
 }
 
-// OverwriteRules transforms input into overwrite rules by index
+// OverwriteRules transforms input into overwrite rules by index.
 //
 // Args:
 //
@@ -383,7 +471,7 @@ func OverwriteRules(items map[string]int, index string, end string, bypass bool,
 	return returnMap
 }
 
-// ToggleRules transforms input into toggle rules by index
+// ToggleRules transforms input into toggle rules by index.
 //
 // Args:
 //
