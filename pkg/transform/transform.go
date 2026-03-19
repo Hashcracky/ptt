@@ -96,13 +96,6 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 			os.Exit(1)
 		}
 		output = mask.MakeMatchedMaskedMap(input, replacementMask, transformationFilesMap, bypass, functionDebug)
-	case "swap", "swap-single":
-		fmt.Fprintf(os.Stderr, "[*] This transformation mode requires a ':' separated list of keys to swap.\n")
-		if len(transformationFilesMap) == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Swap operations require use of one or more -tf flags to specify one or more files.\n")
-			os.Exit(1)
-		}
-		output = ReplaceKeysInMap(input, transformationFilesMap, bypass, functionDebug)
 	case "mask-pop", "pop":
 		output = mask.BoundarySplitPopMap(input, replacementMask, bypass, functionDebug)
 	case "mask-swap":
@@ -119,14 +112,6 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 			os.Exit(1)
 		}
 		output = MakePassphraseMap(input, bypass, functionDebug, wordRangeStart, wordRangeEnd)
-	case "substring":
-		output = utils.SubstringMap(input, startingIndex, endingIndex, bypass, functionDebug)
-	case "replace-all", "replace":
-		if len(transformationFilesMap) == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Replace operations require use of one or more -tf flags to specify one or more files.\n")
-			os.Exit(1)
-		}
-		output = ReplaceAllKeysInMap(input, transformationFilesMap, bypass, functionDebug)
 	case "regram":
 		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects space separated content.\n")
 		if wordRangeStart == 0 {
@@ -144,76 +129,6 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 	}
 
 	return output
-}
-
-// ReplaceKeysInMap takes a map of keys and values and replaces the keys
-// with replacements based on the replacement map. This is useful for
-// exact key swaps.
-//
-// Args:
-//
-//	originalMap (map[string]int): The original map to replace keys in
-//	replacements (map[string]int): The map of replacements to use
-//	bypass (bool): If true, the map is not used for output or filtering
-//	debug (bool): If true, print additional debug information to stderr
-//
-// Returns:
-//
-//	(map[string]int): A new map with the keys replaced
-func ReplaceKeysInMap(originalMap map[string]int, replacements map[string]int, bypass bool, debug bool) map[string]int {
-	newMap := make(map[string]int)
-	for key, value := range originalMap {
-		newKeyArray := utils.ReplaceSubstring(key, replacements)
-		for _, newKey := range newKeyArray {
-
-			if debug {
-				fmt.Fprintf(os.Stderr, "Key: %s\n", key)
-				fmt.Fprintf(os.Stderr, "New Key: %s\n", newKey)
-			}
-
-			if !bypass {
-				newMap[newKey] = value
-			} else {
-				fmt.Println(newKey)
-			}
-		}
-	}
-	return newMap
-}
-
-// ReplaceAllKeysInMap takes a map of keys and values and replaces the keys
-// with replacements based on the replacement map. This is useful for
-// replacing all instances of a key with a new key.
-//
-// Args:
-//
-//	originalMap (map[string]int): The original map to replace keys in
-//	replacements (map[string]int): The map of replacements to use
-//	bypass (bool): If true, the map is not used for output or filtering
-//	debug (bool): If true, print additional debug information to stderr
-//
-//	Returns:
-//
-//	(map[string]int): A new map with the keys replaced
-func ReplaceAllKeysInMap(originalMap map[string]int, replacements map[string]int, bypass bool, debug bool) map[string]int {
-	newMap := make(map[string]int)
-	for key, value := range originalMap {
-		newKeyArray := utils.ReplaceAllSubstring(key, replacements)
-		for _, newKey := range newKeyArray {
-
-			if debug {
-				fmt.Fprintf(os.Stderr, "Key: %s\n", key)
-				fmt.Fprintf(os.Stderr, "New Key: %s\n", newKey)
-			}
-
-			if !bypass {
-				newMap[newKey] = value
-			} else {
-				fmt.Println(newKey)
-			}
-		}
-	}
-	return newMap
 }
 
 // MakePassphraseMap takes a map of keys and creates a new map with new

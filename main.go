@@ -21,7 +21,6 @@ var mutex = &sync.Mutex{}
 var retain models.FileArgumentFlag
 var remove models.FileArgumentFlag
 var readFiles models.FileArgumentFlag
-var readURLs models.FileArgumentFlag
 var transformationFiles models.FileArgumentFlag
 var intRange models.IntRange
 var lenRange models.IntRange
@@ -33,7 +32,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of Password Transformation Tool (ptt) version (%s):\n\n", version)
 		fmt.Fprintf(os.Stderr, "ptt [options] [...]\nAccepts standard input and/or additonal arguments.\n\n")
-		fmt.Fprintf(os.Stderr, "The -f, -k, -r, -tf, and -u flags can be used multiple times, together, and with files or directories.\n")
+		fmt.Fprintf(os.Stderr, "The -f, -k, -r, and -tf flags can be used multiple times, together, and with files or directories.\n")
 		fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		fmt.Fprintf(os.Stderr, "These modify or filter the transformation mode.\n\n")
@@ -59,11 +58,8 @@ func main() {
 			"mask-retain -rm [uldsb] -tf [file] -v": "Transforms input by creating masks that still retain strings from file.",
 			"mask-pop -rm [uldsbt]":                 "Transforms input by 'popping' tokens from character boundaries using the provided mask.",
 			"mask-match -tf [file]":                 "Transforms input by keeping only strings with matching masks from a mask file.",
-			"swap-single -tf [file]":                "Transforms input by swapping tokens once per string per replacement with exact matches from a ':' separated file.",
 			"mask-swap -tf [file]":                  "Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.",
 			"passphrase -w [words]":                 "Transforms input by generating passphrases from sentences with a given number of words.",
-			"substring -i [index]":                  "Transforms input by extracting substrings starting at index and ending at index.",
-			"replace-all -tf [file]":                "Transforms input by replacing all strings with all matches from a ':' separated file.",
 			"regram -w [words]":                     "Transforms input by 'regramming' sentences into new n-grams with a given number of words.",
 		}
 
@@ -90,7 +86,6 @@ func main() {
 	jsonOutput := flag.String("o", "", "Output to JSON file in addition to stdout. Accepts file names and paths.")
 	bypassMap := flag.Bool("b", false, "Bypass map creation and use stdout as primary output. Disables some options.")
 	debugMode := flag.Int("d", 0, "Enable debug mode with verbosity levels [0-2].")
-	URLParsingMode := flag.Int("p", 0, "Change parsing mode for URL input. [0 = Strict, 1 = Permissive, 2 = Maximum].")
 	ignoreCase := flag.Bool("ic", false, "Ignore case when processing output and converts all output to lowercase.")
 	flag.Var(&retain, "k", "Only keep items in a file.")
 	flag.Var(&remove, "r", "Only keep items not in a file.")
@@ -99,7 +94,6 @@ func main() {
 	flag.Var(&intRange, "i", "Starting index for transformations if applicable. Accepts ranges separated by '-'.")
 	flag.Var(&lenRange, "l", "Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.")
 	flag.Var(&wordRange, "w", "Number of words for transformations if applicable. Accepts ranges separated by '-'.")
-	flag.Var(&readURLs, "u", "Read additional URLs for input.")
 	flag.Parse()
 
 	if *bypassMap {
@@ -135,12 +129,6 @@ func main() {
 		transformationFilesMap = utils.ReadFilesToMap(fs, transformationFiles)
 	}
 
-	readURLsMap, err := utils.ReadURLsToMap(readURLs, *URLParsingMode, *debugMode)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[!] Error reading URLs: %s.\n", err)
-		return
-	}
-
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		primaryMap, err = utils.LoadStdinToMap(bufio.NewScanner(os.Stdin))
@@ -150,13 +138,13 @@ func main() {
 		}
 	}
 
-	if len(primaryMap) == 0 && len(readFilesMap) == 0 && len(readURLsMap) == 0 {
+	if len(primaryMap) == 0 && len(readFilesMap) == 0 {
 		fmt.Fprintf(os.Stderr, "[!] No input provided. Exiting.\n")
 		return
 	} else if len(primaryMap) == 0 {
-		primaryMap = utils.CombineMaps(readFilesMap, readURLsMap)
-	} else {
-		primaryMap = utils.CombineMaps(primaryMap, readFilesMap, readURLsMap)
+		primaryMap = readFilesMap
+	} else if len(readFilesMap) > 0 {
+		primaryMap = utils.CombineMaps(primaryMap, readFilesMap)
 	}
 
 	doneLoad <- true

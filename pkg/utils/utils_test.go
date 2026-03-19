@@ -20,9 +20,6 @@ import (
 // - IncrementIteratingRuleCall()
 // - ConvertMultiByteCharToIteratingRule()
 // - SplitBySeparatorString()
-// - ReplaceSubstring()
-// - ReplaceAllSubstring()
-// - SubstringMap()
 // - GenerateNGrams()
 // - GeneratePassphrase()
 //
@@ -31,7 +28,6 @@ import (
 // - CheckHexString()
 // - CheckAreMapsEqual()
 // - CheckAreArraysEqual()
-// - IsValidURL()
 //
 // ----------------------------------------------------------------------------
 // Functions without Unit Tests
@@ -332,112 +328,6 @@ func TestSplitBySeparatorString(t *testing.T) {
 		}
 	}
 }
-
-// Unit Test for ReplaceSubstring()
-func TestReplaceSubstring(t *testing.T) {
-
-	// Define a test case struct
-	type TestCase struct {
-		Input        string
-		Replacements map[string]int
-		Output       []string
-	}
-
-	type TestCases []TestCase
-
-	// Define test cases
-	testCases := TestCases{
-		{"I love you", map[string]int{"love:miss": 1}, []string{"I miss you"}},
-		{"I <3 you", map[string]int{"<3:heart": 1}, []string{"I heart you"}},
-		{"I 爱 you", map[string]int{"爱:love": 1}, []string{"I love you"}},
-		{"I love you", map[string]int{"love:爱": 1}, []string{"I 爱 you"}},
-		{"13Teststreet31p", map[string]int{"street:road": 1}, []string{"13Testroad31p"}},
-		{"123131asdasd", map[string]int{"131:313": 1}, []string{"123313asdasd"}},
-		{"12313zxczxc", map[string]int{"13:31": 1}, []string{"12331zxczxc"}},
-	}
-
-	// Run test cases
-	for _, testCase := range testCases {
-		input := testCase.Input
-		replacements := testCase.Replacements
-		output := testCase.Output
-
-		given := ReplaceSubstring(input, replacements)
-		if given[0] != output[0] {
-			t.Errorf("ReplaceSubstring(%v, %v) = %v; want %v", input, replacements, given, output)
-		}
-	}
-}
-
-// Unit Test for ReplaceAllSubstring()
-func TestReplaceAllSubstring(t *testing.T) {
-
-	// Define a test case struct
-	type TestCase struct {
-		Input        string
-		Replacements map[string]int
-		Output       []string
-	}
-
-	type TestCases []TestCase
-
-	// Define test cases
-	testCases := TestCases{
-		{"I love you", map[string]int{"love:miss": 1}, []string{"I miss you"}},
-		{"I <3 you", map[string]int{"<3:heart": 1}, []string{"I heart you"}},
-		{"I 爱 you", map[string]int{"爱:love": 1}, []string{"I love you"}},
-		{"I love you", map[string]int{"love:爱": 1}, []string{"I 爱 you"}},
-		{"13Teststreet31p", map[string]int{"street:road": 1}, []string{"13Testroad31p"}},
-		{"123131asdasd", map[string]int{"131:313": 1}, []string{"123313asdasd"}},
-		{"12313zxczxc", map[string]int{"13:31": 1}, []string{"12331zxczxc"}},
-	}
-
-	// Run test cases
-	for _, testCase := range testCases {
-		input := testCase.Input
-		replacements := testCase.Replacements
-		output := testCase.Output
-
-		given := ReplaceAllSubstring(input, replacements)
-		if given[0] != output[0] {
-			t.Errorf("ReplaceAllSubstring(%v, %v) = %v; want %v", input, replacements, given, output)
-		}
-	}
-
-}
-
-// Unit Test for SubstringMap()
-func TestSubstringMap(t *testing.T) {
-
-	// Define a test case struct
-	type TestCase struct {
-		input  map[string]int
-		start  int
-		end    int
-		output map[string]int
-	}
-
-	// Define test cases
-	testCases := []TestCase{
-		{map[string]int{"love1": 1, "love2": 1, "love3": 1}, 0, 4, map[string]int{"love": 3}},
-		{map[string]int{"<31": 1, "<32": 1, "<33": 1}, 1, 2, map[string]int{"3": 3}},
-		{map[string]int{"爱1": 1, "爱2": 1, "爱3": 1}, 0, 3, map[string]int{"爱": 3}},
-	}
-
-	// Run test cases
-	for _, testCase := range testCases {
-		input := testCase.input
-		start := testCase.start
-		end := testCase.end
-		output := testCase.output
-
-		given := SubstringMap(input, start, end, false, false)
-		if CheckAreMapsEqual(given, output) == false {
-			t.Errorf("SubstringMap(%v, %v, %v) = %v; want %v", input, start, end, given, output)
-		}
-	}
-}
-
 // Unit Test for CheckASCIIString()
 func TestCheckASCIIString(t *testing.T) {
 
@@ -646,38 +536,6 @@ func TestGeneratePassphrase(t *testing.T) {
 		given := GeneratePassphrase(input1, input2)
 		if CheckAreArraysEqual(given, output) == false {
 			t.Errorf("GeneratePassphrase(%v, %v) = %v; want %v", input1, input2, given, output)
-		}
-	}
-}
-
-// Unit Test for IsValidURL()
-func TestIsValidURL(t *testing.T) {
-
-	// Define a test case struct
-	type TestCase struct {
-		Input  string
-		Output bool
-	}
-
-	type TestCases []TestCase
-
-	// Define test cases
-	testCases := TestCases{
-		{"https://www.google.com", true},
-		{"http://www.google.com", true},
-		{"www.google.com", false},
-		{"google.com", false},
-		{"google", false},
-	}
-
-	// Run test cases
-	for _, testCase := range testCases {
-		input := testCase.Input
-		output := testCase.Output
-
-		given := IsValidURL(input)
-		if given != output {
-			t.Errorf("IsValidURL(%v) = %v; want %v", input, given, output)
 		}
 	}
 }
