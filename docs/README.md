@@ -45,7 +45,7 @@ git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . &
 ---
 ### Usage:
 ```
-Usage of Password Transformation Tool (ptt) version (1.1.0):
+Usage of Password Transformation Tool (ptt) version (1.1.1):
 
 ptt [options] [...]
 Accepts standard input and/or additonal arguments.
