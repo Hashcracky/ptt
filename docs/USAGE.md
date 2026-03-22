@@ -103,12 +103,12 @@ There are some additional notes when importing data and getting started:
 - `ptt -ic`: Ignore case when creating output and convert to lowercase.
 - These options are available for all transformations.
 #### Rockyou Examples:
-`ptt -f rockyou.txt -t pop -l 4-5`:
+`ptt -f rockyou.txt -t mask-pop -l 4-5`:
 
-**Flags**: `-f` to select a *file*, `-t` to use the `pop` *transformation*, and `-l` to give a  *length* range of results.
+**Flags**: `-f` to select a *file*, `-t` to use the `mask-pop` *transformation* (alias: `pop`), and `-l` to give a  *length* range of results.
 
 ```shell
-$ ptt -f rockyou.txt -t pop -l 4-5
+$ ptt -f rockyou.txt -t mask-pop -l 4-5
 1234
 2007
 2006
@@ -122,12 +122,12 @@ life
 ...
 ```
 
- `ptt -f rockyou.txt -t pop -l 4-5 -v`:
+ `ptt -f rockyou.txt -t mask-pop -l 4-5 -v`:
  
- **Flags**: `-f` to select a *file*, `-t` to use the `pop` *transformation*, `-l` to give a  *length* range of results, and `-v` to print *verbose* output.
+ **Flags**: `-f` to select a *file*, `-t` to use the `mask-pop` *transformation* (alias: `pop`), `-l` to give a  *length* range of results, and `-v` to print *verbose* output.
 
 ```shell
-$ ptt -f rockyou.txt -t pop -l 4-5 -v
+$ ptt -f rockyou.txt -t mask-pop -l 4-5 -v
 29529 1234
 24459 2007
 22002 2006
@@ -141,12 +141,12 @@ $ ptt -f rockyou.txt -t pop -l 4-5 -v
 ...
 ```
 
-`ptt -f rockyou.txt -t pop -l 4-5 -vv`:
+`ptt -f rockyou.txt -t mask-pop -l 4-5 -vv`:
  
- **Flags**: `-f` to select a *file*, `-t` to use the `pop` *transformation*, `-l` to give a  *length* range of results, and `-vv` to print very *verbose* output with an item graph.
+ **Flags**: `-f` to select a *file*, `-t` to use the `mask-pop` *transformation* (alias: `pop`), `-l` to give a  *length* range of results, and `-vv` to print very *verbose* output with an item graph.
 
 ```shell
-$ ptt -f rockyou.txt -t pop -l 4-5 -vv
+$ ptt -f rockyou.txt -t mask-pop -l 4-5 -vv
 1234 [29529]==================================================
 2007 [24459]=========================================
 2006 [22002]=====================================
@@ -158,9 +158,9 @@ life [14496]========================
 2005 [14300]========================
 1992 [14159]=======================
 ```
-`ptt -f rockyou.txt -t pop -l 4-5 -vvv`:
+`ptt -f rockyou.txt -t mask-pop -l 4-5 -vvv`:
 
-**Flags**: `-f` to select a *file*, `-t` to use the `pop` *transformation*, `-l` to give a  *length* range of results, and `-vvv` to print very very *verbose* output with a full report.
+**Flags**: `-f` to select a *file*, `-t` to use the `mask-pop` *transformation* (alias: `pop`), `-l` to give a  *length* range of results, and `-vvv` to print very very *verbose* output with a full report.
 
 ```shell
 [*] Starting statistics generation. Please wait...
@@ -254,25 +254,25 @@ $ echo 'HelloWorld!I<3ThePasswordTransformationToolPr0j3ct' | ptt -t mask -rm ds
 1 HelloWorld?sI?s?dThePasswordTransformationToolPr?dj?dct:50:4:94
 ```
 ### Mask Matching
-Masks can be matched to a given string to determine if the string matches the mask. The syntax to match a mask is as follows:
+Masks can be matched to a given string to determine if the string matches the mask. The syntax to match a mask is as follows (alias: `match`):
 ```
 ptt -f <input_file> -t mask-match -tf <mask_file>
 ```
 Where `<mask_file>` is the file containing the mask to match. The mask file should only contain valid masks. The output will be all of the strings that match the masks.
 ### Removing Characters by Mask
-Characters can be removed from a string by a mask. The syntax to remove characters by mask is as follows:
+Characters can be removed from a string by a mask. The syntax to remove characters by mask is as follows (alias: `remove`):
 ```
 ptt -f <input_file> -t mask-remove -rm <mask_characters>
 ```
 Where `<mask_characters>` is the mask to remove from the string. The output will be the string with the characters removed.
 ### Creating Retain/Partial Masks
-Retain masks or partial masks can be created to retain only certain keywords in a string. The `-v` flag is optional and, if provided, will print the length of the original string, the length, the complexity, and the remaining mask keyspace. The syntax to create a retain mask is as follows:
+Retain masks or partial masks can be created to retain only certain keywords in a string. The `-v` flag is optional and, if provided, will print the length of the original string, the length, the complexity, and the remaining mask keyspace. The syntax to create a retain mask is as follows (alias: `retain`):
 ```
 ptt -f <input_file> -t mask-retain -rm <mask_characters> -tf <keep_file> -v
 ```
 Where `<mask_characters>` is the mask to retain and `<keep_file>` is the file containing the keywords to retain. The output will be the mask with only the keywords retained.
 
-The `retain` mode can also be used with `-rm` to alter the replacement mask and recieve different output.
+The `retain` alias can also be used with `-rm` to alter the replacement mask and receive different output.
 ```
 $ echo 'sp-test1337' | ptt -t retain -tf keep.tmp
 [*] Reading files for input.
@@ -304,52 +304,52 @@ There are several types of rules that can be created using PTT:
 - `Insert Rules`: Insert a string at a specific position in the password.
 - `Overwrite Rules`: Overwrite a string at a specific position in the password.
 ### Append Rules
-Append rules are used to append a string to the end of the password. The syntax for an append rule is as follows:
+Append rules are used to append a string to the end of the password (alias: `append`). The syntax for an append rule is as follows:
 ```
 ptt -f <input_file> -t rule-append
 ```
 
 The append mode also has additional options:
-- `append-remove`: Remove characters from the end of the password before appending a string.
+- `rule-append-remove` (alias: `append-remove`): Remove characters from the end of the password before appending a string.
 
 The syntax for an append-remove rule is as follows:
 ```
 ptt -f <input_file> -t rule-append-remove
 ```
 ### Prepend Rules
-Prepend rules are used to prepend a string to the beginning of the password. The syntax for a prepend rule is as follows:
+Prepend rules are used to prepend a string to the beginning of the password (alias: `prepend`). The syntax for a prepend rule is as follows:
 ```
 ptt -f <input_file> -t rule-prepend
 ```
 
 The prepend mode also has two additional options:
-- `prepend-remove`: Remove characters from the beginning of the password before prepending a string.
+- `rule-prepend-remove` (alias: `prepend-remove`): Remove characters from the beginning of the password before prepending a string.
 
 The syntax for a prepend-remove rule is as follows:
 ```
 ptt -f <input_file> -t rule-prepend-remove
 ```
 
-- `prepend-toggle`: Toggle the case of the password where a string is  prepended. Creating camel and pascal case passwords.
+- `rule-prepend-toggle` (alias: `prepend-toggle`): Toggle the case of the password where a string is  prepended. Creating camel and pascal case passwords.
 
 The syntax for a prepend-toggle rule is as follows:
 ```
 ptt -f <input_file> -t rule-prepend-toggle
 ```
 ### Toggle Rules
-Toggle rules are used to toggle the case of the password. The syntax for a toggle rule is as follows:
+Toggle rules are used to toggle the case of the password (alias: `toggle`). The syntax for a toggle rule is as follows:
 ```
 ptt -f <input_file> -t rule-toggle -i <index>
 ```
 Where `<index>` is the starting index of the toggle pattern. If no index is provided, the toggle pattern will start at the beginning of the password.
 ### Insert Rules
-Insert rules are used to insert a string at a specific position in the password. The syntax for an insert rule is as follows:
+Insert rules are used to insert a string at a specific position in the password (alias: `insert`). The syntax for an insert rule is as follows:
 ```
 ptt -f <input_file> -t rule-insert -i <index>
 ```
 Where `<index>` is the position where the string will be inserted. If no index is provided, the string will be inserted at the beginning of the password. The `<index>` can also accept range values in the format of `start-end`. For example, `1-5` will print output for the insert transformation starting from index 1 to 5.
 ### Overwrite Rules
-Overwrite rules are used to overwrite a string at a specific position in the password. The syntax for an overwrite rule is as follows:
+Overwrite rules are used to overwrite a string at a specific position in the password (alias: `overwrite`). The syntax for an overwrite rule is as follows:
 ```
 ptt -f <input_file> -t rule-overwrite -i <index>
 ```
@@ -357,13 +357,13 @@ Where `<index>` is the position where the string will be overwritten. If no inde
 ## Wordlist Creation Usage
 There are several ways to generate wordlists using PTT:
 - `Token Popping`: Generates tokens by popping strings at character boundaries.
-  This is implemented in the `pop` module.
+  This is implemented in the `mask-pop` module (alias: `pop`).
 - `Token Swapping`: Generates tokens by swapping characters in a string. This is
   implemented in the `mask-swap` module.
 - `Passphrases`: Generates passphrases by reforming sentences. This is implemented
   in the `passphrase` module.
 ### Token Popping
-The `pop` module generates tokens by popping strings at character boundaries. The syntax is as follows:
+The `mask-pop` module (alias: `pop`) generates tokens by popping strings at character boundaries. The syntax is as follows:
 ```
 ptt -f <input-file> -t mask-pop -rm <mask-characters>
 ```
@@ -386,7 +386,7 @@ ptt -f <input-file> -t mask-swap -tf <replacement-file>
 > [!NOTE]
 > The input for `mask-swap` is partial masks. This is different from other modes.
 
-The replacement file does not need to be in any specific format. The replacements will be applied to the first instance in each line. The `mask-swap` mode is unique in that it uses partial masks from the `retain` module to generate new candidates. This mode also uses its replacer module (different from the other modes) to generate new candidates by extracting the masks and then matching them to the replacement file.
+The replacement file does not need to be in any specific format. The replacements will be applied to the first instance in each line. The `mask-swap` mode is unique in that it uses partial masks from the `mask-retain` (alias: `retain`) module to generate new candidates. This mode also uses its replacer module (different from the other modes) to generate new candidates by extracting the masks and then matching them to the replacement file.
 #### Token Swapping Example
 ```bash
 $ cat pass.lst

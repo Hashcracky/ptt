@@ -106,13 +106,13 @@ These create or alter based on the selected mode.
   -t mask -rm [uldsb] -v
         Transforms input by masking characters with provided mask.
   -t mask-match -tf [file]
-        Transforms input by keeping only strings with matching masks from a mask file.
+        Transforms input by keeping only strings with matching masks from a mask file. (alias: match)
   -t mask-pop -rm [uldsbt]
-        Transforms input by 'popping' tokens from character boundaries using the provided mask.
+        Transforms input by 'popping' tokens from character boundaries using the provided mask. (alias: pop)
   -t mask-remove -rm [uldsb]
-        Transforms input by removing characters with provided mask.
+        Transforms input by removing characters with provided mask. (alias: remove)
   -t mask-retain -rm [uldsb] -tf [file] -v
-        Transforms input by creating masks that still retain strings from file.
+        Transforms input by creating masks that still retain strings from file. (alias: retain)
   -t mask-swap -tf [file]
         Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.
   -t passphrase -w [words]
@@ -120,20 +120,21 @@ These create or alter based on the selected mode.
   -t regram -w [words]
         Transforms input by 'regramming' sentences into new n-grams with a given number of words.
   -t rule-append
-        Transforms input by creating append rules.
+        Transforms input by creating append rules. (alias: append)
   -t rule-append-remove
-        Transforms input by creating append-remove rules.
+        Transforms input by creating append-remove rules. (alias: append-remove)
   -t rule-insert -i [index]
-        Transforms input by creating insert rules starting at index.
+        Transforms input by creating insert rules starting at index. (alias: insert)
   -t rule-overwrite -i [index]
-        Transforms input by creating overwrite rules starting at index.
+        Transforms input by creating overwrite rules starting at index. (alias: overwrite)
   -t rule-prepend
-        Transforms input by creating prepend rules.
+        Transforms input by creating prepend rules. (alias: prepend)
   -t rule-prepend-remove
-        Transforms input by creating prepend-remove rules.
+        Transforms input by creating prepend-remove rules. (alias: prepend-remove)
   -t rule-prepend-toggle
-        Transforms input by creating prepend-toggle rules.
+        Transforms input by creating prepend-toggle rules. (alias: prepend-toggle)
   -t rule-toggle -i [index]
-        Transforms input by creating toggle rules starting at index.
+        Transforms input by creating toggle rules starting at index. (alias: toggle)
 -------------------------------------------------------------------------------------------------------------
+Tip: Use -t <mode> -h for detailed help and examples on a specific mode.
 ```
