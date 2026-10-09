@@ -119,6 +119,8 @@ These create or alter based on the selected mode.
         Transforms input by generating passphrases from sentences with a given number of words.
   -t regram -w [words]
         Transforms input by 'regramming' sentences into new n-grams with a given number of words.
+  -t analyze
+        Analyzes input corpus with analyzer metadata. (alias: analyzer)
   -t rule-append
         Transforms input by creating append rules. (alias: append)
   -t rule-append-remove

@@ -8,13 +8,14 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/hashcracky/ptt/pkg/analyze"
 	"github.com/hashcracky/ptt/pkg/format"
 	"github.com/hashcracky/ptt/pkg/models"
 	"github.com/hashcracky/ptt/pkg/transform"
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-var version = "1.1.1"
+var version = "1.2.0"
 var wg sync.WaitGroup
 var mutex = &sync.Mutex{}
 var retain models.FileArgumentFlag
@@ -26,6 +27,8 @@ var lenRange models.IntRange
 var wordRange models.IntRange
 var primaryMap map[string]int
 var err error
+var analyzeMode bool
+var inputLines []string
 
 // getModeHelp returns a detailed help string for each transformation mode.
 // The returned text mirrors the USAGE.md guide so users can get mode-specific
@@ -461,6 +464,28 @@ Example:
   $ echo 'the quick brown fox' | ptt -t regram -w 3
   the quick brown
   quick brown fox`,
+
+		"analyze": `Mode: analyze
+Computes metadata about the input.
+
+Syntax:
+  ptt -f <input_file> -t analyze [-v] [-o <output_file>]
+
+Flags:
+  -v    Show a verbose report: token category counts, character
+        composition and samples of the generated full/partial masks
+        and rules.
+  -o <dir>    Write generated artifacts (full_masks.txt, partial_masks.txt, rules.txt) to this output directory.
+
+Description:
+  Analyzes the input plaintext corpus; it derives the top tokens, token category counts,
+  character composition, full and partial Hashcat masks, and a curated
+  set of Hashcat rules.
+
+Example:
+  $ echo 'Password1!' | ptt -t analyze
+  $ cat passwords.txt | ptt -t analyze -v
+  $ ptt -f passwords.txt -t analyze -o report.json`,
 	}
 
 	aliases := map[string]string{
@@ -476,6 +501,7 @@ Example:
 		"retain":         "mask-retain",
 		"match":          "mask-match",
 		"pop":            "mask-pop",
+		"analyzer":       "analyze",
 	}
 
 	if canonical, ok := aliases[mode]; ok {
@@ -551,6 +577,7 @@ func main() {
 			"mask-swap -tf [file]":                  "Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.",
 			"passphrase -w [words]":                 "Transforms input by generating passphrases from sentences with a given number of words.",
 			"regram -w [words]":                     "Transforms input by 'regramming' sentences into new n-grams with a given number of words.",
+			"analyze":                               "Analyzes input corpus with metadata. (alias: analyzer)",
 		}
 
 		keys := make([]string, 0, len(modes))
@@ -574,7 +601,7 @@ func main() {
 	outputVerboseMax := flag.Int("n", 0, "Maximum number of items to return in output.")
 	transformation := flag.String("t", "", "Transformation to apply to input.")
 	replacementMask := flag.String("rm", "uldsbt", "Replacement mask for transformations if applicable.")
-	jsonOutput := flag.String("o", "", "Output to JSON file in addition to stdout. Accepts file names and paths.")
+	jsonOutput := flag.String("o", "", "Output path: the JSON file for most modes, or the output directory for the analyzer mode (writes full_masks.txt, partial_masks.txt, rules.txt).")
 	bypassMap := flag.Bool("b", false, "Bypass map creation and use stdout as primary output. Disables some options.")
 	debugMode := flag.Int("d", 0, "Enable debug mode with verbosity levels [0-2].")
 	ignoreCase := flag.Bool("ic", false, "Ignore case when processing output and converts all output to lowercase.")
@@ -638,6 +665,11 @@ func main() {
 		primaryMap = utils.CombineMaps(primaryMap, readFilesMap)
 	}
 
+	inputLines = make([]string, 0, len(primaryMap))
+	for key := range primaryMap {
+		inputLines = append(inputLines, key)
+	}
+
 	doneLoad <- true
 	close(doneLoad)
 	fmt.Fprintf(os.Stderr, "[*] All input loaded.\n")
@@ -655,7 +687,11 @@ func main() {
 	doneProcess := make(chan bool)
 	go utils.TrackLoadTime(doneProcess, "Processing")
 
-	if *transformation != "" {
+	if *transformation == "analyze" {
+		analyzeMode = true
+	}
+
+	if *transformation != "" && !analyzeMode {
 		primaryMap = transform.TransformationController(primaryMap, *transformation, intRange.Start, intRange.End, *verbose, *replacementMask, transformationFilesMap, *bypassMap, *debugMode, wordRange.Start, wordRange.End)
 	}
 
@@ -704,7 +740,22 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "[*] Task complete with %d unique results.\n", len(primaryMap))
 
-	if *verbose3 {
+	if analyzeMode {
+		summary := analyze.Analyze(inputLines)
+		analyze.PrintSummary(summary, len(inputLines), *verbose)
+
+		if *jsonOutput != "" {
+			fmt.Fprintf(os.Stderr, "[*] Saving analyzer artifacts (full masks, partial masks, rules) to directory: %s.\n", *jsonOutput)
+			written, err := analyze.WriteArtifacts(summary, *jsonOutput)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[!] Error writing analyzer artifacts: %s.\n", err)
+				return
+			}
+			for _, p := range written {
+				fmt.Fprintf(os.Stderr, "[*] Wrote artifact: %s\n", p)
+			}
+		}
+	} else if *verbose3 {
 		format.PrintStatsToSTDOUT(primaryMap, *verbose3, *outputVerboseMax)
 	} else if *verbose2 {
 		format.PrintStatsToSTDOUT(primaryMap, *verbose3, *outputVerboseMax)
@@ -712,11 +763,11 @@ func main() {
 		format.PrintArrayToSTDOUT(primaryMap, *verbose)
 	}
 
-	if *jsonOutput != "" {
+	if *jsonOutput != "" && !analyzeMode {
 		fmt.Fprintf(os.Stderr, "[*] Saving output to JSON file: %s.\n", *jsonOutput)
 	}
 
-	if *jsonOutput != "" {
+	if *jsonOutput != "" && !analyzeMode {
 		err = format.SaveArrayToJSON(*jsonOutput, primaryMap)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[!] Error saving output to JSON: %s.\n", err)

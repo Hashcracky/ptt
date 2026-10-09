@@ -24,6 +24,7 @@
   - [Encoding and Decoding](#encoding-and-decoding)
   - [Hex and Dehex](#hex-and-dehex)
   - [Regram](#regram)
+  - [Analyzer](#analyzer)
 
 ## Introduction
 The Password Transformation Tool (PTT) is a command-line utility that allows users to transform passwords using various methods. This guide will provide instructions on how to install and use the tool.
@@ -462,3 +463,46 @@ This mode allows 'regramming' sentences into new n-grams with a given number of 
 ptt -f <input_file> -t regram -w <word_count>
 ```
 The `regram` transformation will generate new n-grams from the input by combining words from the input. The number of words to use in the n-gram is specified by the `-w` flag. The output will be the new n-grams generated from the input.
+
+### Analyzer
+This mode computes metadata about the input corpus. The syntax is as follows (alias: `analyzer`):
+```
+ptt -f <input_file> -t analyze [-v] [-o <output_file>]
+```
+The `analyze` transformation works like the standalone analyzer tool: it derives top tokens, token category counts, character composition, full and partial Hashcat masks, and a curated set of Hashcat rules from the input. 
+
+The `-v` flag is optional and will show a verbose report including the token category counts, character composition, and samples of the generated full/partial masks and rules.
+
+The `-o` flag specifies an output **directory** where the generated artifacts are written. Each artifact is saved as its own file so it can be used directly (for example, loaded into Hashcat):
+
+- `full_masks.txt` - the full masks generated from the input.
+- `partial_masks.txt` - the partial masks generated from the input.
+- `rules.txt` - the curated set of Hashcat rules.
+
+The directory is created automatically if it does not exist.
+```
+$ echo 'Password1!' | ptt -t analyze
+[*] Analysis of 1 input line(s). [0 unique tokens, 1 full masks, 0 partial masks, 36 rules]
+
+=== Top Tokens ===
+
+=== Categories ===
+  alphanumeric-with-special: 1
+  non-complex: 1
+  short-complex: 1
+  starts-uppercase: 1
+
+=== Composition ===
+  lower: 8
+  upper: 1
+  digits: 1
+  special: 1
+  multibyte: 0
+
+=== Artifacts: 1 full masks, 0 partial masks, 36 rules ===
+
+$ ptt -f input.txt -t analyze -o ./analyzer_out
+[*] Wrote artifact: ./analyzer_out/full_masks.txt
+[*] Wrote artifact: ./analyzer_out/partial_masks.txt
+[*] Wrote artifact: ./analyzer_out/rules.txt
+```
