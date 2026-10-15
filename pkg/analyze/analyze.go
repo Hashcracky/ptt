@@ -866,5 +866,10 @@ func WriteArtifacts(s analyzeSummary, dir string) ([]string, error) {
 	}
 	written = append(written, filepath.Join(dir, "rules.txt"))
 
+	if err := writeArtifactLines(dir, "tokens.txt", s.TopTokens); err != nil {
+		return written, err
+	}
+	written = append(written, filepath.Join(dir, "tokens.txt"))
+
 	return written, nil
 }
