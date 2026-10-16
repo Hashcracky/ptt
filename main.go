@@ -15,7 +15,7 @@ import (
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-var version = "1.2.0"
+var version = "1.2.1"
 var wg sync.WaitGroup
 var mutex = &sync.Mutex{}
 var retain models.FileArgumentFlag
@@ -475,7 +475,7 @@ Flags:
   -v    Show a verbose report: token category counts, character
         composition and samples of the generated full/partial masks
         and rules.
-  -o <dir>    Write generated artifacts (full_masks.txt, partial_masks.txt, rules.txt) to this output directory.
+  -o <dir>    Write generated artifacts (full_masks.txt, partial_masks.txt, rules.txt, tokens.txt) to this output directory.
 
 Description:
   Analyzes the input plaintext corpus; it derives the top tokens, token category counts,
@@ -601,7 +601,7 @@ func main() {
 	outputVerboseMax := flag.Int("n", 0, "Maximum number of items to return in output.")
 	transformation := flag.String("t", "", "Transformation to apply to input.")
 	replacementMask := flag.String("rm", "uldsbt", "Replacement mask for transformations if applicable.")
-	jsonOutput := flag.String("o", "", "Output path: the JSON file for most modes, or the output directory for the analyzer mode (writes full_masks.txt, partial_masks.txt, rules.txt).")
+	jsonOutput := flag.String("o", "", "Output path: the JSON file for most modes, or the output directory for the analyzer mode (writes full_masks.txt, partial_masks.txt, rules.txt, and tokens.txt).")
 	bypassMap := flag.Bool("b", false, "Bypass map creation and use stdout as primary output. Disables some options.")
 	debugMode := flag.Int("d", 0, "Enable debug mode with verbosity levels [0-2].")
 	ignoreCase := flag.Bool("ic", false, "Ignore case when processing output and converts all output to lowercase.")

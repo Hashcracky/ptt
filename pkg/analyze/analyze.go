@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/hashcracky/ptt/pkg/format"
 	"github.com/hashcracky/ptt/pkg/mask"
@@ -162,7 +163,7 @@ func getTopN(freq map[string]int, n int) []string {
 		list = append(list, kv{k, v})
 	}
 
-	sort.SliceStable(list, func(i, j int) bool { return list[i].v > list[j].v })
+	sort.SliceStable(list, func(i, j int) bool { return list[i].v > list[j].v || (list[i].v == list[j].v && list[i].k < list[j].k) })
 
 	out := make([]string, 0, n)
 
@@ -336,25 +337,47 @@ func maskLineRetainingTokens(line string, tokenSet map[string]struct{}, replacer
 		end   int
 	}
 
-	var matches []match
-	lineLower := strings.ToLower(line)
+	// Build a rune-aware, case-insensitive search key from the original line.
+	//
+	// Lowercasing can *expand* a single rune into several runes (e.g. U+023A
+	// Ⱥ -> ⱥ). Byte offsets computed on such a lowercased string therefore no
+	// longer correspond to byte positions in the original line, so slicing the
+	// original line with them would run off its end and panic.
+	runes := []rune(line)
+	lower := make([]rune, len(runes))
+	for i, r := range runes {
+		lower[i] = unicode.ToLower(r)
+	}
+	byteAt := make([]int, len(runes)+1)
+	for i, r := range runes {
+		byteAt[i+1] = byteAt[i] + len(string(r))
+	}
 
-	for token := range tokenSet {
-		idx := 0
+	var matches []match
+	tokenKeys := make([]string, 0, len(tokenSet))
+	for t := range tokenSet {
+		tokenKeys = append(tokenKeys, t)
+	}
+	sort.Strings(tokenKeys)
+	for _, token := range tokenKeys {
+		needle := []rune(token)
+		if len(needle) == 0 {
+			continue
+		}
+		search := 0
 		for {
-			pos := strings.Index(lineLower[idx:], token)
+			pos := runeIndexLower(lower[search:], needle)
 			if pos == -1 {
 				break
 			}
-
-			actualPos := idx + pos
+			runeStart := search + pos
+			runeEnd := runeStart + len(needle)
 			matches = append(matches, match{
-				token: line[actualPos : actualPos+len(token)],
-				start: actualPos,
-				end:   actualPos + len(token),
+				token: string(runes[runeStart:runeEnd]),
+				start: byteAt[runeStart],
+				end:   byteAt[runeEnd],
 			})
-
-			idx = actualPos + len(token)
+			search = runeEnd
 		}
 	}
 
@@ -420,6 +443,35 @@ func maskLineRetainingTokens(line string, tokenSet map[string]struct{}, replacer
 // Returns:
 //
 //	[]string - Keys sorted by descending frequency.
+//
+// runeIndexLower returns the index at which needle first occurs in haystack,
+// comparing rune-by-rune. Both slices are expected to already be in the
+// comparable (lowercased) form that maskLineRetainingTokens builds; callers
+// never pass raw text to this helper.
+//
+// Returns -1 when needle is not present in haystack.
+func runeIndexLower(haystack, needle []rune) int {
+	if len(needle) == 0 {
+		return 0
+	}
+	if len(needle) > len(haystack) {
+		return -1
+	}
+	for start := 0; start+len(needle) <= len(haystack); start++ {
+		i := 0
+		for i < len(needle) {
+			if haystack[start+i] != needle[i] {
+				break
+			}
+			i++
+		}
+		if i == len(needle) {
+			return start
+		}
+	}
+	return -1
+}
+
 func sortByFrequency(freq map[string]int) []string {
 	type kv struct {
 		k string
@@ -813,6 +865,11 @@ func WriteArtifacts(s analyzeSummary, dir string) ([]string, error) {
 		return written, err
 	}
 	written = append(written, filepath.Join(dir, "rules.txt"))
+
+	if err := writeArtifactLines(dir, "tokens.txt", s.TopTokens); err != nil {
+		return written, err
+	}
+	written = append(written, filepath.Join(dir, "tokens.txt"))
 
 	return written, nil
 }

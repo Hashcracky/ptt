@@ -478,6 +478,7 @@ The `-o` flag specifies an output **directory** where the generated artifacts ar
 - `full_masks.txt` - the full masks generated from the input.
 - `partial_masks.txt` - the partial masks generated from the input.
 - `rules.txt` - the curated set of Hashcat rules.
+- `tokens.txt` - the top tokens extracted from the input.
 
 The directory is created automatically if it does not exist.
 ```
@@ -505,4 +506,5 @@ $ ptt -f input.txt -t analyze -o ./analyzer_out
 [*] Wrote artifact: ./analyzer_out/full_masks.txt
 [*] Wrote artifact: ./analyzer_out/partial_masks.txt
 [*] Wrote artifact: ./analyzer_out/rules.txt
+[*] Wrote artifact: ./analyzer_out/tokens.txt
 ```
