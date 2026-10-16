@@ -163,7 +163,7 @@ func getTopN(freq map[string]int, n int) []string {
 		list = append(list, kv{k, v})
 	}
 
-	sort.SliceStable(list, func(i, j int) bool { return list[i].v > list[j].v })
+	sort.SliceStable(list, func(i, j int) bool { return list[i].v > list[j].v || (list[i].v == list[j].v && list[i].k < list[j].k) })
 
 	out := make([]string, 0, n)
 
