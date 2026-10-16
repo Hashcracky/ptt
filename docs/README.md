@@ -45,7 +45,7 @@ git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . &
 ---
 ### Usage:
 ```
-Usage of Password Transformation Tool (ptt) version (1.2.0):
+Usage of Password Transformation Tool (ptt) version (1.2.1):
 
 ptt [options] [...]
 Accepts standard input and/or additonal arguments.
@@ -55,88 +55,88 @@ The -f, -k, -r, and -tf flags can be used multiple times, together, and with fil
 Options:
 These modify or filter the transformation mode.
 
-  -b    Bypass map creation and use stdout as primary output. Disables some options.
+  -b	Bypass map creation and use stdout as primary output. Disables some options.
   -d int
-        Enable debug mode with verbosity levels [0-2].
+    	Enable debug mode with verbosity levels [0-2].
   -f value
-        Read additional files for input.
+    	Read additional files for input.
   -i value
-        Starting index for transformations if applicable. Accepts ranges separated by '-'.
+    	Starting index for transformations if applicable. Accepts ranges separated by '-'.
   -ic
-        Ignore case when processing output and converts all output to lowercase.
+    	Ignore case when processing output and converts all output to lowercase.
   -k value
-        Only keep items in a file.
+    	Only keep items in a file.
   -l value
-        Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.
+    	Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.
   -m int
-        Minimum numerical frequency to include in output.
+    	Minimum numerical frequency to include in output.
   -mc int
-        Minimum complexity score to include before processing (lowercase, uppercase, digits, specials, bytes) [1-5].
+    	Minimum complexity score to include before processing (lowercase, uppercase, digits, specials, bytes) [1-5].
   -n int
-        Maximum number of items to return in output.
+    	Maximum number of items to return in output.
   -o string
-        Output to JSON file in addition to stdout. Accepts file names and paths.
+    	Output path: the JSON file for most modes, or the output directory for the analyzer mode (writes full_masks.txt, partial_masks.txt, rules.txt, and tokens.txt).
   -r value
-        Only keep items not in a file.
+    	Only keep items not in a file.
   -rm string
-        Replacement mask for transformations if applicable. (default "uldsbt")
+    	Replacement mask for transformations if applicable. (default "uldsbt")
   -t string
-        Transformation to apply to input.
+    	Transformation to apply to input.
   -tf value
-        Read additional files for transformations if applicable.
-  -v    Show verbose output when possible. (Can show additional metadata in some modes.)
+    	Read additional files for transformations if applicable.
+  -v	Show verbose output when possible. (Can show additional metadata in some modes.)
   -vv
-        Show statistics output when possible.
+    	Show statistics output when possible.
   -vvv
-        Show verbose statistics output when possible.
+    	Show verbose statistics output when possible.
   -w value
-        Number of words for transformations if applicable. Accepts ranges separated by '-'.
+    	Number of words for transformations if applicable. Accepts ranges separated by '-'.
 -------------------------------------------------------------------------------------------------------------
 Transformation Modes:
 These create or alter based on the selected mode.
 
-  -t decode
-        Transforms input by HTML and Unicode escape decoding.
-  -t dehex
-        Transforms input by decoding $HEX[...] formatted strings.
-  -t encode
-        Transforms input by HTML and Unicode escape encoding.
-  -t hex
-        Transforms input by encoding strings into $HEX[...] format.
-  -t mask -rm [uldsb] -v
-        Transforms input by masking characters with provided mask.
-  -t mask-match -tf [file]
-        Transforms input by keeping only strings with matching masks from a mask file. (alias: match)
-  -t mask-pop -rm [uldsbt]
-        Transforms input by 'popping' tokens from character boundaries using the provided mask. (alias: pop)
-  -t mask-remove -rm [uldsb]
-        Transforms input by removing characters with provided mask. (alias: remove)
-  -t mask-retain -rm [uldsb] -tf [file] -v
-        Transforms input by creating masks that still retain strings from file. (alias: retain)
-  -t mask-swap -tf [file]
-        Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.
-  -t passphrase -w [words]
-        Transforms input by generating passphrases from sentences with a given number of words.
-  -t regram -w [words]
-        Transforms input by 'regramming' sentences into new n-grams with a given number of words.
   -t analyze
-        Analyzes input corpus with analyzer metadata. (alias: analyzer)
+	Analyzes input corpus with metadata. (alias: analyzer)
+  -t decode
+	Transforms input by HTML and Unicode escape decoding.
+  -t dehex
+	Transforms input by decoding $HEX[...] formatted strings.
+  -t encode
+	Transforms input by HTML and Unicode escape encoding.
+  -t hex
+	Transforms input by encoding strings into $HEX[...] format.
+  -t mask -rm [uldsb] -v
+	Transforms input by masking characters with provided mask.
+  -t mask-match -tf [file]
+	Transforms input by keeping only strings with matching masks from a mask file. (alias: match)
+  -t mask-pop -rm [uldsbt]
+	Transforms input by 'popping' tokens from character boundaries using the provided mask. (alias: pop)
+  -t mask-remove -rm [uldsb]
+	Transforms input by removing characters with provided mask. (alias: remove)
+  -t mask-retain -rm [uldsb] -tf [file] -v
+	Transforms input by creating masks that still retain strings from file. (alias: retain)
+  -t mask-swap -tf [file]
+	Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.
+  -t passphrase -w [words]
+	Transforms input by generating passphrases from sentences with a given number of words.
+  -t regram -w [words]
+	Transforms input by 'regramming' sentences into new n-grams with a given number of words.
   -t rule-append
-        Transforms input by creating append rules. (alias: append)
+	Transforms input by creating append rules. (alias: append)
   -t rule-append-remove
-        Transforms input by creating append-remove rules. (alias: append-remove)
+	Transforms input by creating append-remove rules. (alias: append-remove)
   -t rule-insert -i [index]
-        Transforms input by creating insert rules starting at index. (alias: insert)
+	Transforms input by creating insert rules starting at index. (alias: insert)
   -t rule-overwrite -i [index]
-        Transforms input by creating overwrite rules starting at index. (alias: overwrite)
+	Transforms input by creating overwrite rules starting at index. (alias: overwrite)
   -t rule-prepend
-        Transforms input by creating prepend rules. (alias: prepend)
+	Transforms input by creating prepend rules. (alias: prepend)
   -t rule-prepend-remove
-        Transforms input by creating prepend-remove rules. (alias: prepend-remove)
+	Transforms input by creating prepend-remove rules. (alias: prepend-remove)
   -t rule-prepend-toggle
-        Transforms input by creating prepend-toggle rules. (alias: prepend-toggle)
+	Transforms input by creating prepend-toggle rules. (alias: prepend-toggle)
   -t rule-toggle -i [index]
-        Transforms input by creating toggle rules starting at index. (alias: toggle)
+	Transforms input by creating toggle rules starting at index. (alias: toggle)
 -------------------------------------------------------------------------------------------------------------
 Tip: Use -t <mode> -h for detailed help and examples on a specific mode.
 ```
