@@ -140,9 +140,9 @@ func CharToIteratingRule(str string, rule string, index int) string {
 			}
 		} else {
 			if currentPos < 10 {
-				b.WriteString(fmt.Sprintf("%s%d%c ", rule, currentPos, r))
+				fmt.Fprintf(&b, "%s%d%c ", rule, currentPos, r)
 			} else if currentPos-10 < 26 {
-				b.WriteString(fmt.Sprintf("%s%c%c ", rule, 'A'+currentPos-10, r))
+				fmt.Fprintf(&b, "%s%c%c ", rule, 'A'+currentPos-10, r)
 			}
 			currentPos++
 		}
@@ -168,9 +168,9 @@ func StringToToggleRule(str string, rule string, index int) string {
 	for i, r := range str {
 		if unicode.IsUpper(r) {
 			if i+index < 10 {
-				result.WriteString(fmt.Sprintf("%s%d ", rule, i+index))
+				fmt.Fprintf(&result, "%s%d ", rule, i+index)
 			} else if i+index-10 < 26 {
-				result.WriteString(fmt.Sprintf("%s%c ", rule, 'A'+i+index-10))
+				fmt.Fprintf(&result, "%s%c ", rule, 'A'+i+index-10)
 			}
 		}
 	}

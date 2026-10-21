@@ -38,10 +38,14 @@ func (i *IntRange) String() string {
 func (i *IntRange) Set(value string) error {
 	parts := strings.Split(value, "-")
 	if len(parts) == 1 {
-		fmt.Sscanf(value, "%d", &i.Start)
+		if _, err := fmt.Sscanf(value, "%d", &i.Start); err != nil {
+			return err
+		}
 		i.End = i.Start
 	} else if len(parts) == 2 {
-		fmt.Sscanf(value, "%d-%d", &i.Start, &i.End)
+		if _, err := fmt.Sscanf(value, "%d-%d", &i.Start, &i.End); err != nil {
+			return err
+		}
 	}
 	return nil
 }

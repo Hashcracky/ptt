@@ -234,9 +234,9 @@ func ConvertMultiByteMask(str string) string {
 			byteArr := []byte(string(r))
 			for j := range byteArr {
 				if j == len(byteArr)-1 {
-					returnStr += fmt.Sprintf("?b")
+					returnStr += "?b"
 				} else {
-					returnStr += fmt.Sprintf("?b")
+					returnStr += "?b"
 				}
 			}
 		} else {
@@ -499,7 +499,7 @@ func BoundarySplitPopMap(input map[string]int, replacementMask string, bypass bo
 func ShuffleMap(input map[string]int, replacementMask string, swapMap map[string]int, bypass bool, debug bool) map[string]int {
 	shuffleMap := make(map[string]int)
 	re := regexp.MustCompile(`^(\?u|\?l|\?d|\?s|\?b)*$`)
-	reParser := regexp.MustCompile("(\\?[ludsb])")
+	reParser := regexp.MustCompile(`(\?[ludsb])`)
 
 	for key, value := range input {
 		newKey := ""
@@ -524,8 +524,7 @@ func ShuffleMap(input map[string]int, replacementMask string, swapMap map[string
 			maskedSwapKey := MakeMaskedString(swapKey, replacementMask)
 			if maskedSwapKey == newKey {
 
-				var shufKey string
-				shufKey = strings.Replace(key, newKey, swapKey, 1)
+				shufKey := strings.Replace(key, newKey, swapKey, 1)
 
 				if debug {
 					fmt.Fprintf(os.Stderr, "[?][?] Swap performed:\n")

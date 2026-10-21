@@ -1,5 +1,5 @@
 module github.com/hashcracky/ptt
 
-go 1.26.1
+go 1.27.0
 
-require golang.org/x/text v0.14.0
+require golang.org/x/text v0.31.0

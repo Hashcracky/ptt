@@ -89,7 +89,11 @@ func ReadFilesToMap(fs models.FileSystem, filenames []string) map[string]int {
 				fmt.Fprintf(os.Stderr, "[!] Error opening file %s.\n", filename)
 				os.Exit(1)
 			}
-			defer file.Close()
+			defer func() {
+				if err := file.Close(); err != nil {
+					fmt.Fprintf(os.Stderr, "[!] Error closing file %s.\n", filename)
+				}
+			}()
 
 			buffer := make([]byte, chunkSize)
 			for {
@@ -154,7 +158,7 @@ func LoadStdinToMap(scanner models.Scanner) (map[string]int, error) {
 		}
 
 		// Detect ptt -v output
-		if matched := reDetect.MatchString(scanner.Text()); matched && pttInput == false && line0 == false {
+		if matched := reDetect.MatchString(scanner.Text()); matched && !pttInput && !line0 {
 			fmt.Fprintf(os.Stderr, "[*] Detected ptt -v output. Importing...\n")
 			pttInput = true
 		}
@@ -470,10 +474,7 @@ func GeneratePassphrase(text string, n int) []string {
 //
 //	(bool): If the string only contained ASCII characters
 func CheckASCIIString(str string) bool {
-	if utf8.RuneCountInString(str) != len(str) {
-		return false
-	}
-	return true
+	return utf8.RuneCountInString(str) == len(str)
 }
 
 // CheckHexString is used to identify plaintext in the $HEX[...] format
@@ -487,10 +488,7 @@ func CheckASCIIString(str string) bool {
 //	(bool): Returns true if it matches and false if it did not
 func CheckHexString(s string) bool {
 	var validateInput = regexp.MustCompile(`^\$HEX\[[a-zA-Z0-9]*\]$`).MatchString
-	if validateInput(s) == false {
-		return false
-	}
-	return true
+	return validateInput(s)
 }
 
 // CheckAreMapsEqual checks if two maps are equal by comparing the length of the maps
