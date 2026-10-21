@@ -39,10 +39,7 @@ import (
 //	(map[string]int): A map of transformed values
 func TransformationController(input map[string]int, mode string, startingIndex int, endingIndex int, verbose bool, replacementMask string, transformationFilesMap map[string]int, bypass bool, debug int, wordRangeStart int, wordRangeEnd int, outMinLength int, outMaxLength int, includeNonLatin bool) (output map[string]int) {
 
-	functionDebug := false
-	if debug > 1 {
-		functionDebug = true
-	}
+	functionDebug := debug > 1
 
 	if debug > 0 {
 		fmt.Fprintf(os.Stderr, "[?] TransformationController: Starting debug mode:\n")

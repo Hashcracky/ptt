@@ -627,9 +627,7 @@ func containsTooManyUncommonClusters(s string) bool {
 
 		totalBigrams++
 
-		key := string([]byte{a, b})
-
-		if _, exists := uncommonBigrams[key]; exists {
+		if _, exists := uncommonBigrams[string([]byte{a, b})]; exists {
 			uncommonBigramCnt++
 		}
 
@@ -746,11 +744,7 @@ func hasHighNonLetterDensity(s string) bool {
 
 	nonLetterRatio := float64(nonLetterCount) / float64(total)
 
-	if nonLetterRatio > 0.3 {
-		return true
-	}
-
-	return false
+	return nonLetterRatio > 0.3
 }
 
 // hasSuspiciousAlphaNumericRuns checks for long sequences where digits
@@ -818,9 +812,10 @@ func hasUnbalancedDelimitersAnywhere(s string) bool {
 		var depth int
 
 		for _, r := range s {
-			if r == p.open {
+			switch r {
+			case p.open:
 				depth++
-			} else if r == p.close {
+			case p.close:
 				if depth == 0 {
 					return true
 				}

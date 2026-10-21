@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"sync"
 
 	"github.com/hashcracky/ptt/pkg/analyze"
 	"github.com/hashcracky/ptt/pkg/format"
@@ -16,8 +15,6 @@ import (
 )
 
 var version = "1.3.0"
-var wg sync.WaitGroup
-var mutex = &sync.Mutex{}
 var retain models.FileArgumentFlag
 var remove models.FileArgumentFlag
 var readFiles models.FileArgumentFlag

@@ -36,7 +36,7 @@ func PrintArrayToSTDOUT(freq map[string]int, verbose bool) {
 	p := make(models.PairList, len(freq))
 	i := 0
 	for k, v := range freq {
-		p[i] = models.Pair{k, v}
+		p[i] = models.Pair{Key: k, Value: v}
 		i++
 	}
 	sort.Sort(sort.Reverse(p))
@@ -70,8 +70,8 @@ func PrintStatsToSTDOUT(freq map[string]int, verbose bool, maxItems int) {
 	normalizedP := make(models.PairList, len(freq))
 	i := 0
 	for k, v := range freq {
-		p[i] = models.Pair{k, v}
-		normalizedP[i] = models.Pair{k, v}
+		p[i] = models.Pair{Key: k, Value: v}
+		normalizedP[i] = models.Pair{Key: k, Value: v}
 		i++
 	}
 	sort.Sort(sort.Reverse(p))
@@ -93,7 +93,7 @@ func PrintStatsToSTDOUT(freq map[string]int, verbose bool, maxItems int) {
 	// Print the statistics
 	if verbose {
 		fmt.Fprintf(os.Stderr, "[*] Starting statistics generation. Please wait...\n")
-		fmt.Println(fmt.Sprintf("Verbose Statistics: max=%d", maxItems))
+		fmt.Printf("Verbose Statistics: max=%d\n", maxItems)
 		fmt.Println("--------------------------------------------------")
 		fmt.Println(CreateVerboseStats(freq))
 		fmt.Println("--------------------------------------------------")
@@ -141,7 +141,7 @@ func CreateVerboseStats(freq map[string]int) string {
 	p := make(models.PairList, len(freq))
 	i := 0
 	for k, v := range freq {
-		p[i] = models.Pair{k, v}
+		p[i] = models.Pair{Key: k, Value: v}
 		i++
 	}
 	sort.Sort(sort.Reverse(p))
@@ -572,7 +572,7 @@ func FilterTopN(freq map[string]int, n int) map[string]int {
 	p := make(models.PairList, len(freq))
 	i := 0
 	for k, v := range freq {
-		p[i] = models.Pair{k, v}
+		p[i] = models.Pair{Key: k, Value: v}
 		i++
 	}
 	sort.Sort(sort.Reverse(p))
@@ -598,11 +598,7 @@ func CreateIgnoreCaseMap(freq map[string]int) map[string]int {
 	newFreq := make(map[string]int)
 	for key, value := range freq {
 		key = strings.ToLower(key)
-		if _, ok := newFreq[key]; ok {
-			newFreq[key] += value
-		} else {
-			newFreq[key] = value
-		}
+		newFreq[key] += value
 	}
 	return newFreq
 }
