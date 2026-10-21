@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashcracky/ptt/pkg/brainstorm"
 	"github.com/hashcracky/ptt/pkg/format"
 	"github.com/hashcracky/ptt/pkg/mask"
 	"github.com/hashcracky/ptt/pkg/rule"
@@ -30,11 +31,13 @@ import (
 //	debug (int): Different debug levels to use for debugging [0-2]
 //	wordRangeStart (int): The starting range for word operations
 //	wordRangeEnd (int): The ending range for word operations
+//	outMinLength (int): The minimum output length for brainstorm mode.
+//	outMaxLength (int): The maximum output length for brainstorm mode.
 //
 // Returns:
 //
 //	(map[string]int): A map of transformed values
-func TransformationController(input map[string]int, mode string, startingIndex int, endingIndex int, verbose bool, replacementMask string, transformationFilesMap map[string]int, bypass bool, debug int, wordRangeStart int, wordRangeEnd int) (output map[string]int) {
+func TransformationController(input map[string]int, mode string, startingIndex int, endingIndex int, verbose bool, replacementMask string, transformationFilesMap map[string]int, bypass bool, debug int, wordRangeStart int, wordRangeEnd int, outMinLength int, outMaxLength int, includeNonLatin bool) (output map[string]int) {
 
 	functionDebug := false
 	if debug > 1 {
@@ -119,6 +122,8 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 			os.Exit(1)
 		}
 		output = GenerateNGramMap(input, wordRangeStart, wordRangeEnd, bypass, functionDebug)
+	case "brainstorm":
+		output = brainstorm.ProcessBrainstormMap(input, wordRangeStart, wordRangeEnd, outMinLength, outMaxLength, bypass, functionDebug, includeNonLatin)
 	default:
 		output = input
 	}

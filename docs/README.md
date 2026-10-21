@@ -45,7 +45,7 @@ git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . &
 ---
 ### Usage:
 ```
-Usage of Password Transformation Tool (ptt) version (1.2.1):
+Usage of Password Transformation Tool (ptt) version (1.3.0):
 
 ptt [options] [...]
 Accepts standard input and/or additonal arguments.
@@ -75,7 +75,7 @@ These modify or filter the transformation mode.
   -n int
     	Maximum number of items to return in output.
   -o string
-    	Output path: the JSON file for most modes, or the output directory for the analyzer mode (writes full_masks.txt, partial_masks.txt, rules.txt, and tokens.txt).
+    	Output path: the JSON file for most modes, or the output directory for the analyzer mode.
   -r value
     	Only keep items not in a file.
   -rm string
@@ -84,6 +84,8 @@ These modify or filter the transformation mode.
     	Transformation to apply to input.
   -tf value
     	Read additional files for transformations if applicable.
+  -unicode
+    	Include non-Latin multi-byte letter sequences by relaxing Latin vowel heuristics.
   -v	Show verbose output when possible. (Can show additional metadata in some modes.)
   -vv
     	Show statistics output when possible.
@@ -97,6 +99,8 @@ These create or alter based on the selected mode.
 
   -t analyze
 	Analyzes input corpus with metadata. (alias: analyzer)
+  -t brainstorm -w [range] -l [range] [-unicode]
+	Transforms input by generating n-grams with title-case normalization, apostrophe variants, and length filtering.
   -t decode
 	Transforms input by HTML and Unicode escape decoding.
   -t dehex
@@ -119,8 +123,6 @@ These create or alter based on the selected mode.
 	Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.
   -t passphrase -w [words]
 	Transforms input by generating passphrases from sentences with a given number of words.
-  -t regram -w [words]
-	Transforms input by 'regramming' sentences into new n-grams with a given number of words.
   -t rule-append
 	Transforms input by creating append rules. (alias: append)
   -t rule-append-remove

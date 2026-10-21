@@ -15,7 +15,7 @@ import (
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-var version = "1.2.1"
+var version = "1.3.0"
 var wg sync.WaitGroup
 var mutex = &sync.Mutex{}
 var retain models.FileArgumentFlag
@@ -465,6 +465,36 @@ Example:
   the quick brown
   quick brown fox`,
 
+		"brainstorm": `Mode: brainstorm
+Transforms input by generating n-grams with title-case normalization,
+apostrophe variants, and length filtering.
+
+Syntax:
+  ptt -f <input_file> -t brainstorm -w <word_range> -l <length_range> [-unicode]
+
+Flags:
+  -w <range>    N-gram word length range in the form start-end (default: 1-5).
+                Accepts ranges separated by '-' (e.g. 1-3).
+  -l <range>    Final output length range in the form min-max (default: 4-32).
+                Accepts ranges separated by '-' (e.g. 4-20).
+  -unicode      Relax Latin vowel heuristics to include non-Latin multi-byte
+                letter sequences.
+
+Description:
+  Generates n-grams from input lines, title-cases multi-word results,
+  removes unbalanced delimiters, and emits apostrophe-free variants.
+  Useful for generating candidate passwords from word lists.
+
+Example:
+  $ echo 'hello world' | ptt -t brainstorm -w 1-3 -l 4-20
+  Hello
+  World
+  HelloWorld
+
+  $ echo 'password test123' | ptt -t brainstorm -w 1-2 -l 4-20 -unicode
+  Password
+  Test123`,
+
 		"analyze": `Mode: analyze
 Computes metadata about the input.
 
@@ -576,8 +606,8 @@ func main() {
 			"mask-match -tf [file]":                 "Transforms input by keeping only strings with matching masks from a mask file. (alias: match)",
 			"mask-swap -tf [file]":                  "Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.",
 			"passphrase -w [words]":                 "Transforms input by generating passphrases from sentences with a given number of words.",
-			"regram -w [words]":                     "Transforms input by 'regramming' sentences into new n-grams with a given number of words.",
-			"analyze":                               "Analyzes input corpus with metadata. (alias: analyzer)",
+			"brainstorm -w [range] -l [range] [-unicode]": "Transforms input by generating n-grams with title-case normalization, apostrophe variants, and length filtering.",
+			"analyze": "Analyzes input corpus with metadata. (alias: analyzer)",
 		}
 
 		keys := make([]string, 0, len(modes))
@@ -601,10 +631,11 @@ func main() {
 	outputVerboseMax := flag.Int("n", 0, "Maximum number of items to return in output.")
 	transformation := flag.String("t", "", "Transformation to apply to input.")
 	replacementMask := flag.String("rm", "uldsbt", "Replacement mask for transformations if applicable.")
-	jsonOutput := flag.String("o", "", "Output path: the JSON file for most modes, or the output directory for the analyzer mode (writes full_masks.txt, partial_masks.txt, rules.txt, and tokens.txt).")
+	jsonOutput := flag.String("o", "", "Output path: the JSON file for most modes, or the output directory for the analyzer mode.")
 	bypassMap := flag.Bool("b", false, "Bypass map creation and use stdout as primary output. Disables some options.")
 	debugMode := flag.Int("d", 0, "Enable debug mode with verbosity levels [0-2].")
 	ignoreCase := flag.Bool("ic", false, "Ignore case when processing output and converts all output to lowercase.")
+	includeNonLatin := flag.Bool("unicode", false, "Include non-Latin multi-byte letter sequences by relaxing Latin vowel heuristics.")
 	flag.Var(&retain, "k", "Only keep items in a file.")
 	flag.Var(&remove, "r", "Only keep items not in a file.")
 	flag.Var(&readFiles, "f", "Read additional files for input.")
@@ -692,7 +723,7 @@ func main() {
 	}
 
 	if *transformation != "" && !analyzeMode {
-		primaryMap = transform.TransformationController(primaryMap, *transformation, intRange.Start, intRange.End, *verbose, *replacementMask, transformationFilesMap, *bypassMap, *debugMode, wordRange.Start, wordRange.End)
+		primaryMap = transform.TransformationController(primaryMap, *transformation, intRange.Start, intRange.End, *verbose, *replacementMask, transformationFilesMap, *bypassMap, *debugMode, wordRange.Start, wordRange.End, lenRange.Start, lenRange.End, *includeNonLatin)
 	}
 
 	doneProcess <- true
