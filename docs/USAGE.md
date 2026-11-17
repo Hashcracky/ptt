@@ -1,5 +1,5 @@
 # Password Transformation Tool (PTT) Usage Guide
-> Version 1.1.0
+> Version 1.2.0
 ## Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -20,6 +20,7 @@
   - [Token Popping](#token-popping)
   - [Token Swapping](#token-swapping)
   - [Passphrases](#passphrases)
+- [Brainstorm Usage](#brainstorm-usage)
 - [Misc. Transformation Usage](#misc-transformation-usage)
   - [Encoding and Decoding](#encoding-and-decoding)
   - [Hex and Dehex](#hex-and-dehex)
@@ -431,6 +432,34 @@ The `passphrase` module generates passphrases by reforming sentences. The syntax
 ptt -f <input-file> -t passphrase -w <word-count>
 ```
 The `passphrase` mode will generate new passphrases from the input by reformatting the sentences into new passphrases. The number of words to use in the passphrase is specified by the `-w` flag. The output will be the new passphrases generated from the input with the specified word count.
+## Brainstorm Usage
+The `brainstorm` mode makes n-grams from the input lines and turns them into candidate passwords. It removes leading and trailing non-letter characters, then generates n-grams for each word count in the range. N-grams with more than one word are changed to title case and the spaces are removed, while single-word n-grams are kept as is. It also removes the n-grams that have a delimiter (for example a quote or bracket) with no matching pair. For an n-gram with an apostrophe, it writes a copy with the apostrophe removed. The mode also skips input that is only digits or special characters and input that does not look like words. The output is filtered to a length range. Use it to make candidate passwords from word lists.
+
+The syntax is as follows:
+```
+ptt -f <input_file> -t brainstorm -w <word_range> -l <length_range> [-unicode]
+```
+
+The flags specific to this mode are:
+- `-w <range>`: The range of words in an n-gram, in the format of `start-end`. For example, `1-5` will generate n-grams with 1 to 5 words. The default is `1-5`.
+- `-l <range>`: The range of the output length, in the format of `min-max`. For example, `4-32` will keep only the output strings with a length between 4 and 32 characters. The default is `4-32`.
+- `-unicode`: Keep the lines that have non-Latin letters. The mode does not do the Latin vowel check on these lines.
+
+```
+$ echo 'hello world' | ptt -t brainstorm -w 1-2 -l 4-20
+[*] All input loaded.
+[*] Task complete with 3 unique results.
+hello
+world
+HelloWorld
+
+$ echo 'password test123' | ptt -t brainstorm -w 1-2 -l 4-20 -unicode
+[*] All input loaded.
+[*] Task complete with 3 unique results.
+password
+test
+PasswordTest
+```
 ## Misc. Transformation Usage
 There are several types that can be created using PTT:
 - `Encoding and Decoding`: This transforms input to and from HTML and Unicode escaped strings.
