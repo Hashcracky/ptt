@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -133,6 +132,13 @@ func ReadFilesToMap(fs models.FileSystem, filenames []string) map[string]int {
 	return wordMap
 }
 
+// pttVerboseDetect matches the first line of ptt -v output and pttVerboseCount
+// matches the frequency at the start of each line of it.
+var (
+	pttVerboseDetect = regexp.MustCompile(`^\d+\s(\w+|\W+)$`)
+	pttVerboseCount  = regexp.MustCompile(`^\d+`)
+)
+
 // LoadStdinToMap reads the contents of stdin and returns a map[string]int
 // where the key is the line and the value is the frequency of the line
 // in the input
@@ -149,8 +155,6 @@ func LoadStdinToMap(scanner models.Scanner) (map[string]int, error) {
 	m := make(map[string]int)
 	pttInput := false
 	line0 := false
-	reDetect := regexp.MustCompile(`^\d+\s(\w+|\W+)$`)
-	reParse := regexp.MustCompile(`^\d+`)
 
 	for scanner.Scan() {
 		if scanner.Text() == "" {
@@ -158,19 +162,16 @@ func LoadStdinToMap(scanner models.Scanner) (map[string]int, error) {
 		}
 
 		// Detect ptt -v output
-		if matched := reDetect.MatchString(scanner.Text()); matched && !pttInput && !line0 {
+		if matched := pttVerboseDetect.MatchString(scanner.Text()); matched && !pttInput && !line0 {
 			fmt.Fprintf(os.Stderr, "[*] Detected ptt -v output. Importing...\n")
 			pttInput = true
 		}
 
 		if pttInput {
-			line := scanner.Text()
-			match := reParse.FindString(line)
-			value, err := strconv.Atoi(match)
+			newLine, value, err := parsePttVerboseLine(scanner.Text())
 			if err != nil {
 				return nil, err
 			}
-			newLine := strings.TrimSpace(strings.Replace(line, match, "", 1))
 			m[newLine] += value
 
 		} else {

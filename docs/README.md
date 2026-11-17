@@ -45,100 +45,105 @@ git clone https://github.com/hashcracky/ptt && cd ptt && docker build -t ptt . &
 ---
 ### Usage:
 ```
-Usage of Password Transformation Tool (ptt) version (1.3.0):
+Usage of Password Transformation Tool (ptt) version (1.3.1):
 
-ptt [options] [...]
-Accepts standard input and/or additonal arguments.
+ptt [options]
+The tool reads standard input. It also reads the files that you give.
 
-The -f, -k, -r, and -tf flags can be used multiple times, together, and with files or directories.
+You can use the -f, -k, -r, and -tf flags more than one time. You can use them together.
+Each of these flags accepts files and directories.
 -------------------------------------------------------------------------------------------------------------
 Options:
-These modify or filter the transformation mode.
+These options change a mode or limit the results.
 
-  -b	Bypass map creation and use stdout as primary output. Disables some options.
+  -b	Transform the input in batches. The tool writes the results to standard output after each batch. The memory use does not increase when the input is large. The tool removes duplicate items only in the same batch. The -k, -r, -m, -n, -ic, -vv, -vvv, and -o options do not work with this flag.
   -d int
-    	Enable debug mode with verbosity levels [0-2].
+    	Set the debug level, from 0 to 2. A higher level shows more debug messages.
   -f value
-    	Read additional files for input.
+    	Read the input from a file or directory. Use this flag more than one time to read more files.
   -i value
-    	Starting index for transformations if applicable. Accepts ranges separated by '-'.
+    	Set the start index for the modes that use an index. The value can be a range, for example 1-5.
   -ic
-    	Ignore case when processing output and converts all output to lowercase.
+    	Change all output to lowercase. Items that are the same in lowercase become one item.
   -k value
-    	Only keep items in a file.
+    	Keep only the items that are in a file.
   -l value
-    	Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.
+    	Write only the items with a length in this range, for example 4-20. For rules, the length is the length of the rule text.
   -m int
-    	Minimum numerical frequency to include in output.
+    	Remove items from the output if their frequency is less than this number.
   -mc int
-    	Minimum complexity score to include before processing (lowercase, uppercase, digits, specials, bytes) [1-5].
+    	Remove input items with a complexity score less than this number, before the transformation. The score is from 1 to 5. It counts the character types: lowercase, uppercase, digit, special, and byte.
   -n int
-    	Maximum number of items to return in output.
+    	Set the maximum number of items in the output.
   -o string
-    	Output path: the JSON file for most modes, or the output directory for the analyzer mode.
+    	Set the output path. For most modes it is a JSON file. For the analyze mode it is a directory.
+  -p int
+    	Set the number of workers for the -b flag. The workers transform batches at the same time. The default is one worker for each CPU.
   -r value
-    	Only keep items not in a file.
+    	Keep only the items that are not in a file.
   -rm string
-    	Replacement mask for transformations if applicable. (default "uldsbt")
+    	Set the mask characters for the modes that use a mask. (default "uldsbt")
   -t string
-    	Transformation to apply to input.
+    	Set the transformation mode to apply to the input.
   -tf value
-    	Read additional files for transformations if applicable.
+    	Read a transformation file or directory for the modes that use one. You can use this flag more than one time.
   -unicode
-    	Include non-Latin multi-byte letter sequences by relaxing Latin vowel heuristics.
-  -v	Show verbose output when possible. (Can show additional metadata in some modes.)
+    	Keep the lines that have non-Latin letters. The brainstorm mode does not do the Latin vowel check on these lines.
+  -v	Show more output, if possible. Some modes add metadata to each item.
   -vv
-    	Show statistics output when possible.
+    	Show output statistics, if possible.
   -vvv
-    	Show verbose statistics output when possible.
+    	Show more statistics for the output, if possible.
   -w value
-    	Number of words for transformations if applicable. Accepts ranges separated by '-'.
+    	Set the number of words for the modes that use a word count. The value can be a range, for example 2-4.
 -------------------------------------------------------------------------------------------------------------
 Transformation Modes:
-These create or alter based on the selected mode.
+Use the -t flag to select a mode. Each mode does a different change to the input.
 
   -t analyze
-	Analyzes input corpus with metadata. (alias: analyzer)
+	Calculate metadata for the input. Alias: analyzer.
   -t brainstorm -w [range] -l [range] [-unicode]
-	Transforms input by generating n-grams with title-case normalization, apostrophe variants, and length filtering.
+	Make n-grams in title case, with and without apostrophes, in a length range.
   -t decode
-	Transforms input by HTML and Unicode escape decoding.
+	Decode HTML entities and Unicode escape sequences in the input.
   -t dehex
-	Transforms input by decoding $HEX[...] formatted strings.
+	Decode the $HEX[...] strings in the input.
   -t encode
-	Transforms input by HTML and Unicode escape encoding.
+	Encode the input as HTML entities and Unicode escape sequences.
   -t hex
-	Transforms input by encoding strings into $HEX[...] format.
+	Encode the input strings in the $HEX[...] format.
   -t mask -rm [uldsb] -v
-	Transforms input by masking characters with provided mask.
+	Replace characters in the input with a mask.
   -t mask-match -tf [file]
-	Transforms input by keeping only strings with matching masks from a mask file. (alias: match)
+	Keep only the input strings that match a mask from a mask file. Alias: match.
   -t mask-pop -rm [uldsbt]
-	Transforms input by 'popping' tokens from character boundaries using the provided mask. (alias: pop)
+	Divide the input at character boundaries and keep the tokens. Alias: pop.
   -t mask-remove -rm [uldsb]
-	Transforms input by removing characters with provided mask. (alias: remove)
+	Remove the characters that a mask selects. Alias: remove.
   -t mask-retain -rm [uldsb] -tf [file] -v
-	Transforms input by creating masks that still retain strings from file. (alias: retain)
+	Make masks that keep the strings from a file. Alias: retain.
   -t mask-swap -tf [file]
-	Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.
+	Swap the tokens in mask or partial mask input with tokens from a file.
   -t passphrase -w [words]
-	Transforms input by generating passphrases from sentences with a given number of words.
+	Make passphrases from sentences. Each passphrase has the number of words that you set.
+  -t regram -w [words]
+	Make new n-grams from sentences. Each n-gram has the number of words that you set.
   -t rule-append
-	Transforms input by creating append rules. (alias: append)
+	Make Hashcat append rules from the input. Alias: append.
   -t rule-append-remove
-	Transforms input by creating append-remove rules. (alias: append-remove)
+	Make append-remove rules from the input. Alias: append-remove.
   -t rule-insert -i [index]
-	Transforms input by creating insert rules starting at index. (alias: insert)
+	Make insert rules that start at the index. Alias: insert.
   -t rule-overwrite -i [index]
-	Transforms input by creating overwrite rules starting at index. (alias: overwrite)
+	Make overwrite rules that start at the index. Alias: overwrite.
   -t rule-prepend
-	Transforms input by creating prepend rules. (alias: prepend)
+	Make Hashcat prepend rules from the input. Alias: prepend.
   -t rule-prepend-remove
-	Transforms input by creating prepend-remove rules. (alias: prepend-remove)
+	Make prepend-remove rules from the input. Alias: prepend-remove.
   -t rule-prepend-toggle
-	Transforms input by creating prepend-toggle rules. (alias: prepend-toggle)
+	Make prepend-toggle rules from the input. Alias: prepend-toggle.
   -t rule-toggle -i [index]
-	Transforms input by creating toggle rules starting at index. (alias: toggle)
+	Make toggle rules that start at the index. Alias: toggle.
 -------------------------------------------------------------------------------------------------------------
-Tip: Use -t <mode> -h for detailed help and examples on a specific mode.
+Note: Use -t <mode> -h to see more data and examples for that mode.
 ```

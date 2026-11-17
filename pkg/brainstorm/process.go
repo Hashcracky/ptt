@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/hashcracky/ptt/pkg/utils"
 )
 
 // ProcessLines takes a slice of input lines and applies the brainstorm
@@ -98,7 +100,7 @@ func ProcessBrainstormMap(input map[string]int, wordRangeStart int, wordRangeEnd
 					newMap[newKey] += value
 				}
 			} else {
-				fmt.Println(newKey)
+				utils.BypassOutput.WriteLine(newKey)
 			}
 		}
 	}

@@ -2,19 +2,22 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/hashcracky/ptt/pkg/analyze"
+	"github.com/hashcracky/ptt/pkg/bypass"
 	"github.com/hashcracky/ptt/pkg/format"
 	"github.com/hashcracky/ptt/pkg/models"
 	"github.com/hashcracky/ptt/pkg/transform"
 	"github.com/hashcracky/ptt/pkg/utils"
 )
 
-var version = "1.3.0"
+var version = "1.3.1"
 var retain models.FileArgumentFlag
 var remove models.FileArgumentFlag
 var readFiles models.FileArgumentFlag
@@ -40,90 +43,102 @@ var inputLines []string
 //	string - Detailed help text for the mode, or empty string if unknown.
 func getModeHelp(mode string) string {
 	help := map[string]string{
-		"rule-append": `Mode: rule-append (alias: append)
-Transforms input by creating Hashcat append rules.
+		"rule-append": `Mode: rule-append
+Alias: append
+Make Hashcat append rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-append
 
 Description:
-  Creates append rules ($) for each character in the input strings. The rules
-  append characters to the end of a candidate password during cracking.
+  The mode makes an append rule ($) for each character in the input string.
+  In Hashcat, an append rule adds a character to the end of a candidate
+  password.
 
 Example:
   $ echo 'hello' | ptt -t rule-append
   $h $e $l $l $o`,
 
-		"rule-append-remove": `Mode: rule-append-remove (alias: append-remove)
-Transforms input by creating append-remove rules.
+		"rule-append-remove": `Mode: rule-append-remove
+Alias: append-remove
+Make append-remove rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-append-remove
 
 Description:
-  Removes characters from the end of the password before creating append rules.
-  Combines the ] (remove last) and $ (append) operations.
+  Each rule removes the last character of the password. Then it adds a
+  character to the end. The rule uses the ] (remove last) and $ (append)
+  operations.
 
 Example:
   $ echo 'hello' | ptt -t rule-append-remove
   ] $h ] $e ] $l ] $l ] $o`,
 
-		"rule-prepend": `Mode: rule-prepend (alias: prepend)
-Transforms input by creating Hashcat prepend rules.
+		"rule-prepend": `Mode: rule-prepend
+Alias: prepend
+Make Hashcat prepend rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-prepend
 
 Description:
-  Creates prepend rules (^) for each character in the input strings. The rules
-  prepend characters to the beginning of a candidate password during cracking.
+  The mode makes a prepend rule (^) for each character in the input string.
+  In Hashcat, a prepend rule adds a character to the start of a candidate
+  password.
 
 Example:
   $ echo 'hello' | ptt -t rule-prepend
   ^o ^l ^l ^e ^h`,
 
-		"rule-prepend-remove": `Mode: rule-prepend-remove (alias: prepend-remove)
-Transforms input by creating prepend-remove rules.
+		"rule-prepend-remove": `Mode: rule-prepend-remove
+Alias: prepend-remove
+Make prepend-remove rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-prepend-remove
 
 Description:
-  Removes characters from the beginning of the password before creating prepend
-  rules. Combines the [ (remove first) and ^ (prepend) operations.
+  Each rule removes the first character of the password. Then it adds a
+  character to the start. The rule uses the [ (remove first) and ^ (prepend)
+  operations.
 
 Example:
   $ echo 'hello' | ptt -t rule-prepend-remove
   [ ^o [ ^l [ ^l [ ^e [ ^h`,
 
-		"rule-prepend-toggle": `Mode: rule-prepend-toggle (alias: prepend-toggle)
-Transforms input by creating prepend-toggle rules.
+		"rule-prepend-toggle": `Mode: rule-prepend-toggle
+Alias: prepend-toggle
+Make prepend-toggle rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-prepend-toggle
 
 Description:
-  Creates rules that toggle the case of the password where a string is
-  prepended. Useful for generating camel and pascal case passwords.
+  The mode makes rules that add a string to the start of a password and
+  toggle the case. Use these rules to make camel case and pascal case
+  passwords.
 
 Example:
   $ echo 'Test' | ptt -t rule-prepend-toggle
   ^t ^s ^e ^T T4
   ^T ^s ^e ^t T0`,
 
-		"rule-toggle": `Mode: rule-toggle (alias: toggle)
-Transforms input by creating Hashcat toggle rules.
+		"rule-toggle": `Mode: rule-toggle
+Alias: toggle
+Make Hashcat toggle rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-toggle -i <index>
 
 Flags:
-  -i <index>    Starting index of the toggle pattern (default: 0).
-                Accepts ranges separated by '-' (e.g. 0-5).
+  -i <index>    The start index of the toggle pattern. The default is 0.
+                The value can be a range, for example 0-5.
 
 Description:
-  Creates toggle rules (T) for each position in the input strings, starting
-  at the given index. If no index is provided, toggling begins at position 0.
+  The mode makes a toggle rule (T) for each position in the input string.
+  It starts at the index that you give. If you do not give an index, it
+  starts at position 0.
 
 Example:
   $ echo 'hello' | ptt -t rule-toggle
@@ -138,19 +153,20 @@ Example:
   T3
   T4`,
 
-		"rule-insert": `Mode: rule-insert (alias: insert)
-Transforms input by creating Hashcat insert rules.
+		"rule-insert": `Mode: rule-insert
+Alias: insert
+Make Hashcat insert rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-insert -i <index>
 
 Flags:
-  -i <index>    Position where the string will be inserted (default: 0).
-                Accepts ranges separated by '-' (e.g. 1-5).
+  -i <index>    The position where the rule inserts the string. The default
+                is 0. The value can be a range, for example 1-5.
 
 Description:
-  Creates insert rules (i) for each character at the specified position in
-  the password. The index can also accept range values in the format of
+  The mode makes an insert rule (i) for each character at the position that
+  you give in the password. The index can also be a range in the format
   start-end.
 
 Example:
@@ -162,19 +178,20 @@ Example:
   i2h i3e i4l i5l i6o
   i3h i4e i5l i6l i7o`,
 
-		"rule-overwrite": `Mode: rule-overwrite (alias: overwrite)
-Transforms input by creating Hashcat overwrite rules.
+		"rule-overwrite": `Mode: rule-overwrite
+Alias: overwrite
+Make Hashcat overwrite rules from the input.
 
 Syntax:
   ptt -f <input_file> -t rule-overwrite -i <index>
 
 Flags:
-  -i <index>    Position where the string will be overwritten (default: 0).
-                Accepts ranges separated by '-' (e.g. 1-5).
+  -i <index>    The position where the rule overwrites the string. The
+                default is 0. The value can be a range, for example 1-5.
 
 Description:
-  Creates overwrite rules (o) for each character at the specified position.
-  The index can also accept range values in the format of start-end.
+  The mode makes an overwrite rule (o) for each character at the position
+  that you give. The index can also be a range in the format start-end.
 
 Example:
   $ echo 'hello' | ptt -t rule-overwrite -i 0
@@ -186,14 +203,14 @@ Example:
   o3h o4e o5l o6l o7o`,
 
 		"encode": `Mode: encode
-Transforms input by HTML and Unicode escape encoding.
+Encode the input as HTML entities and Unicode escape sequences.
 
 Syntax:
   ptt -f <input_file> -t encode
 
 Description:
-  Encodes input strings using HTML entity encoding and Unicode escape
-  sequences. Useful for generating encoded candidates.
+  The mode encodes each input string with HTML entities and with Unicode
+  escape sequences. Use it to make encoded candidates.
 
 Example:
   $ echo '<html>' | ptt -t encode
@@ -203,61 +220,62 @@ Example:
   Hello\u0048\u0065\u006c\u006c\u006f`,
 
 		"decode": `Mode: decode
-Transforms input by HTML and Unicode escape decoding.
+Decode HTML entities and Unicode escape sequences in the input.
 
 Syntax:
   ptt -f <input_file> -t decode
 
 Description:
-  Decodes input strings from HTML entity encoding and Unicode escape
-  sequences back into their original form.
+  The mode decodes HTML entities and Unicode escape sequences in each input
+  string.
 
 Example:
   $ echo '&lt;html&gt;' | ptt -t decode
   <html>`,
 
 		"hex": `Mode: hex
-Transforms input by encoding strings into $HEX[...] format.
+Encode the input strings in the $HEX[...] format.
 
 Syntax:
   ptt -f <input_file> -t hex
 
 Description:
-  Encodes each input string into the $HEX[...] format used by Hashcat
-  for representing non-printable or special characters.
+  The mode encodes each input string in the $HEX[...] format. Hashcat uses
+  this format for special characters and non-printable characters.
 
 Example:
   $ echo 'Hello' | ptt -t hex
   $HEX[48656c6c6f]`,
 
 		"dehex": `Mode: dehex
-Transforms input by decoding $HEX[...] formatted strings.
+Decode the $HEX[...] strings in the input.
 
 Syntax:
   ptt -f <input_file> -t dehex
 
 Description:
-  Decodes $HEX[...] formatted strings back into their plaintext form.
+  The mode decodes each string in the $HEX[...] format to plain text.
 
 Example:
   $ echo '$HEX[48656c6c6f]' | ptt -t dehex
   Hello`,
 
 		"mask": `Mode: mask
-Transforms input by masking characters with the provided mask.
+Replace characters in the input with a mask.
 
 Syntax:
   ptt -f <input_file> -t mask -rm <mask_characters> -v
 
 Flags:
-  -rm <uldsb>   Characters to mask (u=upper, l=lower, d=digit, s=special,
-                b=byte). Default: uldsb (all characters).
-  -v            Show additional metadata: length, complexity, and mask keyspace
-                appended as :length:complexity:keyspace.
+  -rm <uldsb>   The characters to mask: u=upper, l=lower, d=digit,
+                s=special, b=byte. The default is uldsb (all characters).
+  -v            Add metadata to each result: the length, the complexity, and
+                the mask keyspace. The format is :length:complexity:keyspace.
 
 Description:
-  Replaces characters in input strings with Hashcat mask tokens (?u, ?l, ?d,
-  ?s, ?b). Only the character classes specified in -rm are masked.
+  The mode replaces characters in the input strings with Hashcat mask tokens
+  (?u, ?l, ?d, ?s, ?b). It masks only the character classes that you give
+  with -rm.
 
 Example:
   $ echo 'Password1!' | ptt -t mask
@@ -269,40 +287,44 @@ Example:
   $ echo 'Password1!' | ptt -t mask -rm ds -v
   1 Password?d?s:10:4:360`,
 
-		"mask-remove": `Mode: mask-remove (alias: remove)
-Transforms input by removing characters with the provided mask.
+		"mask-remove": `Mode: mask-remove
+Alias: remove
+Remove the characters that a mask selects.
 
 Syntax:
   ptt -f <input_file> -t mask-remove -rm <mask_characters>
 
 Flags:
-  -rm <uldsb>   Characters to remove (u=upper, l=lower, d=digit, s=special,
-                b=byte). Default: uldsb (all characters).
+  -rm <uldsb>   The characters to remove: u=upper, l=lower, d=digit,
+                s=special, b=byte. The default is uldsb (all characters).
 
 Description:
-  Masks the input and then removes the masked character tokens, leaving
-  only the unmasked portions of the string.
+  The mode makes the mask of each input string and then removes the mask
+  tokens. The output has only the parts that have no mask.
 
 Example:
   $ echo 'Password1!' | ptt -t mask-remove -rm ds
   Password`,
 
-		"mask-retain": `Mode: mask-retain (alias: retain)
-Transforms input by creating masks that retain specified keywords.
+		"mask-retain": `Mode: mask-retain
+Alias: retain
+Make masks that keep the keywords from a file.
 
 Syntax:
   ptt -f <input_file> -t mask-retain -rm <mask_characters> -tf <keep_file> -v
 
 Flags:
-  -rm <uldsb>   Mask characters to use for non-retained portions (default: all).
-  -tf <file>    File containing keywords to retain. Required. Can be used
-                multiple times.
-  -v            Show additional metadata: length, complexity, and mask keyspace.
+  -rm <uldsb>   The mask characters for the parts that the mode does not
+                keep. The default is all.
+  -tf <file>    The file with the keywords to keep. You must set this flag.
+                You can use it more than one time.
+  -v            Add metadata: the length, the complexity, and the mask
+                keyspace.
 
 Description:
-  Creates partial masks where specified keywords from the -tf file are kept
-  in plaintext while all other characters are replaced with mask tokens.
-  Each keyword match produces a separate output line.
+  The mode makes partial masks. It keeps the keywords from the -tf file as
+  plain text and replaces all other characters with mask tokens. Each
+  keyword match makes one output line.
 
 Example:
   $ cat keep.txt
@@ -317,19 +339,21 @@ Example:
   sp-?l?l?l?l1337
   ?l?l-?l?l?l?l1337`,
 
-		"mask-match": `Mode: mask-match (alias: match)
-Transforms input by keeping only strings that match masks from a file.
+		"mask-match": `Mode: mask-match
+Alias: match
+Keep only the input strings that match a mask from a file.
 
 Syntax:
   ptt -f <input_file> -t mask-match -tf <mask_file>
 
 Flags:
-  -tf <file>    File containing masks to match against. Required. Can be
-                used multiple times.
+  -tf <file>    The file with the masks to match. You must set this flag.
+                You can use it more than one time.
 
 Description:
-  Masks each input string and compares the result against the masks in the
-  -tf file. Only input strings whose masks appear in the file are kept.
+  The mode makes the mask of each input string. It compares this mask to the
+  masks in the -tf file. It keeps only the input strings that have a mask in
+  the file.
 
 Example:
   $ cat masks.txt
@@ -338,21 +362,22 @@ Example:
   $ echo 'Password1!' | ptt -t mask-match -tf masks.txt
   Password1!`,
 
-		"mask-pop": `Mode: mask-pop (alias: pop)
-Transforms input by 'popping' tokens from character boundaries.
+		"mask-pop": `Mode: mask-pop
+Alias: pop
+Divide the input at character boundaries and keep the tokens.
 
 Syntax:
   ptt -f <input_file> -t mask-pop -rm <mask_characters>
 
 Flags:
-  -rm <uldsbt>  Characters boundaries to pop on (u=upper, l=lower, d=digit,
-                s=special, b=byte, t=title-case words requiring u and l).
-                Default: uldsbt (all boundaries).
+  -rm <uldsbt>  The character boundaries to divide at: u=upper, l=lower,
+                d=digit, s=special, b=byte, t=title-case words (use it with u
+                and l). The default is uldsbt (all boundaries).
 
 Description:
-  Splits input strings at character-class boundaries defined by the mask
-  and aggregates the resulting tokens. Useful for extracting meaningful
-  substrings from passwords (e.g. words, numbers, specials).
+  The mode divides each input string at the character-class boundaries that
+  the mask gives. It collects the tokens. Use it to get words, numbers, and
+  special characters from passwords.
 
 Example:
   $ echo 'Password1!' | ptt -t mask-pop
@@ -368,22 +393,22 @@ Example:
   ...`,
 
 		"mask-swap": `Mode: mask-swap
-Transforms input by swapping tokens using partial masks and a replacement file.
+Swap the tokens in partial masks with tokens from a file.
 
 Syntax:
   ptt -f <mask_input> -t mask-swap -tf <replacement_file>
 
 Flags:
-  -tf <file>    File containing replacement tokens. Required. Can be used
-                multiple times.
+  -tf <file>    The file with the replacement tokens. You must set this flag.
+                You can use it more than one time.
 
 Description:
-  Takes partial/retain masks as input (not raw passwords) and swaps the
-  masked portions with tokens from the -tf replacement file. This is a
-  two-step process: first create retain masks, then swap on them.
+  The input is a partial mask (a retain mask), not a password. The mode
+  replaces the masked parts with tokens from the -tf file. There are two
+  steps: first make retain masks, then swap the tokens in them.
 
 Example:
-  Step 1 - Create retain masks:
+  Step 1 - Make retain masks:
   $ cat pass.lst
   love@123
   @123love
@@ -410,18 +435,19 @@ Example:
   #888love`,
 
 		"passphrase": `Mode: passphrase
-Transforms input by generating passphrases from sentences.
+Make passphrases from sentences.
 
 Syntax:
   ptt -f <input_file> -t passphrase -w <word_count>
 
 Flags:
-  -w <count>    Number of words per passphrase. Required. Accepts ranges
-                separated by '-' (e.g. 2-4).
+  -w <count>    The number of words in each passphrase. You must set this
+                flag. The value can be a range, for example 2-4.
 
 Description:
-  Reformats space-separated input sentences into new passphrases using the
-  specified number of words. Input should contain space-separated content.
+  The mode makes new passphrases from the input sentences. Each passphrase
+  has the number of words that you give. The input lines must contain words
+  with spaces between them.
 
 Example:
   $ echo 'the quick brown fox jumps' | ptt -t passphrase -w 3
@@ -439,18 +465,18 @@ Example:
   brownfoxjumps`,
 
 		"regram": `Mode: regram
-Transforms input by 'regramming' sentences into new n-grams.
+Make new n-grams from sentences.
 
 Syntax:
   ptt -f <input_file> -t regram -w <word_count>
 
 Flags:
-  -w <count>    Number of words per n-gram. Required. Accepts ranges
-                separated by '-' (e.g. 2-4).
+  -w <count>    The number of words in each n-gram. You must set this flag.
+                The value can be a range, for example 2-4.
 
 Description:
-  Generates new n-grams from space-separated input by combining words.
-  Input should contain space-separated content.
+  The mode makes new n-grams from groups of words in the input sentences.
+  The input lines must contain words with spaces between them.
 
 Example:
   $ echo 'the quick brown fox' | ptt -t regram -w 2
@@ -463,24 +489,24 @@ Example:
   quick brown fox`,
 
 		"brainstorm": `Mode: brainstorm
-Transforms input by generating n-grams with title-case normalization,
-apostrophe variants, and length filtering.
+Make n-grams in title case, with and without apostrophes, in a length range.
 
 Syntax:
   ptt -f <input_file> -t brainstorm -w <word_range> -l <length_range> [-unicode]
 
 Flags:
-  -w <range>    N-gram word length range in the form start-end (default: 1-5).
-                Accepts ranges separated by '-' (e.g. 1-3).
-  -l <range>    Final output length range in the form min-max (default: 4-32).
-                Accepts ranges separated by '-' (e.g. 4-20).
-  -unicode      Relax Latin vowel heuristics to include non-Latin multi-byte
-                letter sequences.
+  -w <range>    The range of words in an n-gram, in the format start-end.
+                The default is 1-5.
+  -l <range>    The range of the output length, in the format min-max. The
+                default is 4-32.
+  -unicode      Keep the lines that have non-Latin letters. The mode does not
+                do the Latin vowel check on these lines.
 
 Description:
-  Generates n-grams from input lines, title-cases multi-word results,
-  removes unbalanced delimiters, and emits apostrophe-free variants.
-  Useful for generating candidate passwords from word lists.
+  The mode makes n-grams from the input lines. It changes the results that
+  have more than one word to title case. It removes the n-grams that have a
+  delimiter with no pair. For an n-gram with an apostrophe, it writes a copy
+  with no apostrophe. Use it to make candidate passwords from word lists.
 
 Example:
   $ echo 'hello world' | ptt -t brainstorm -w 1-3 -l 4-20
@@ -493,21 +519,23 @@ Example:
   Test123`,
 
 		"analyze": `Mode: analyze
-Computes metadata about the input.
+Alias: analyzer
+Calculate metadata for the input.
 
 Syntax:
   ptt -f <input_file> -t analyze [-v] [-o <output_file>]
 
 Flags:
-  -v    Show a verbose report: token category counts, character
-        composition and samples of the generated full/partial masks
-        and rules.
-  -o <dir>    Write generated artifacts (full_masks.txt, partial_masks.txt, rules.txt, tokens.txt) to this output directory.
+  -v            Show a longer report. The report has the token category
+                counts, the character composition, and samples of the full
+                masks, the partial masks, and the rules.
+  -o <dir>      Write the artifacts to this directory. The artifacts are
+                full_masks.txt, partial_masks.txt, rules.txt, and tokens.txt.
 
 Description:
-  Analyzes the input plaintext corpus; it derives the top tokens, token category counts,
-  character composition, full and partial Hashcat masks, and a curated
-  set of Hashcat rules.
+  The mode analyzes the input plaintext corpus. It finds the top tokens, the
+  token category counts, and the character composition. It also makes full
+  masks, partial Hashcat masks, and a set of Hashcat rules.
 
 Example:
   $ echo 'Password1!' | ptt -t analyze
@@ -568,43 +596,44 @@ func main() {
 				fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
 				fmt.Fprintf(os.Stderr, "%s\n", helpText)
 				fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
-				fmt.Fprintf(os.Stderr, "For full documentation see: https://github.com/hashcracky/ptt/tree/main/docs/USAGE.md\n")
+				fmt.Fprintf(os.Stderr, "For all the documentation, refer to: https://github.com/hashcracky/ptt/tree/main/docs/USAGE.md\n")
 				return
 			}
 		}
 
 		fmt.Fprintf(os.Stderr, "Usage of Password Transformation Tool (ptt) version (%s):\n\n", version)
-		fmt.Fprintf(os.Stderr, "ptt [options] [...]\nAccepts standard input and/or additonal arguments.\n\n")
-		fmt.Fprintf(os.Stderr, "The -f, -k, -r, and -tf flags can be used multiple times, together, and with files or directories.\n")
+		fmt.Fprintf(os.Stderr, "ptt [options]\nThe tool reads standard input. It also reads the files that you give.\n\n")
+		fmt.Fprintf(os.Stderr, "You can use the -f, -k, -r, and -tf flags more than one time. You can use them together.\nEach of these flags accepts files and directories.\n")
 		fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
-		fmt.Fprintf(os.Stderr, "These modify or filter the transformation mode.\n\n")
+		fmt.Fprintf(os.Stderr, "These options change a mode or limit the results.\n\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
 		fmt.Fprintf(os.Stderr, "Transformation Modes:\n")
-		fmt.Fprintf(os.Stderr, "These create or alter based on the selected mode.\n\n")
+		fmt.Fprintf(os.Stderr, "Use the -t flag to select a mode. Each mode does a different change to the input.\n\n")
 		modes := map[string]string{
-			"rule-append":                           "Transforms input by creating append rules. (alias: append)",
-			"rule-append-remove":                    "Transforms input by creating append-remove rules. (alias: append-remove)",
-			"rule-prepend":                          "Transforms input by creating prepend rules. (alias: prepend)",
-			"rule-prepend-remove":                   "Transforms input by creating prepend-remove rules. (alias: prepend-remove)",
-			"rule-prepend-toggle":                   "Transforms input by creating prepend-toggle rules. (alias: prepend-toggle)",
-			"rule-insert -i [index]":                "Transforms input by creating insert rules starting at index. (alias: insert)",
-			"rule-overwrite -i [index]":             "Transforms input by creating overwrite rules starting at index. (alias: overwrite)",
-			"rule-toggle -i [index]":                "Transforms input by creating toggle rules starting at index. (alias: toggle)",
-			"encode":                                "Transforms input by HTML and Unicode escape encoding.",
-			"decode":                                "Transforms input by HTML and Unicode escape decoding.",
-			"hex":                                   "Transforms input by encoding strings into $HEX[...] format.",
-			"dehex":                                 "Transforms input by decoding $HEX[...] formatted strings.",
-			"mask -rm [uldsb] -v":                   "Transforms input by masking characters with provided mask.",
-			"mask-remove -rm [uldsb]":               "Transforms input by removing characters with provided mask. (alias: remove)",
-			"mask-retain -rm [uldsb] -tf [file] -v": "Transforms input by creating masks that still retain strings from file. (alias: retain)",
-			"mask-pop -rm [uldsbt]":                 "Transforms input by 'popping' tokens from character boundaries using the provided mask. (alias: pop)",
-			"mask-match -tf [file]":                 "Transforms input by keeping only strings with matching masks from a mask file. (alias: match)",
-			"mask-swap -tf [file]":                  "Transforms input by swapping tokens from a mask/partial mask input and a transformation file of tokens.",
-			"passphrase -w [words]":                 "Transforms input by generating passphrases from sentences with a given number of words.",
-			"brainstorm -w [range] -l [range] [-unicode]": "Transforms input by generating n-grams with title-case normalization, apostrophe variants, and length filtering.",
-			"analyze": "Analyzes input corpus with metadata. (alias: analyzer)",
+			"rule-append":                           "Make Hashcat append rules from the input. Alias: append.",
+			"rule-append-remove":                    "Make append-remove rules from the input. Alias: append-remove.",
+			"rule-prepend":                          "Make Hashcat prepend rules from the input. Alias: prepend.",
+			"rule-prepend-remove":                   "Make prepend-remove rules from the input. Alias: prepend-remove.",
+			"rule-prepend-toggle":                   "Make prepend-toggle rules from the input. Alias: prepend-toggle.",
+			"rule-insert -i [index]":                "Make insert rules that start at the index. Alias: insert.",
+			"rule-overwrite -i [index]":             "Make overwrite rules that start at the index. Alias: overwrite.",
+			"rule-toggle -i [index]":                "Make toggle rules that start at the index. Alias: toggle.",
+			"encode":                                "Encode the input as HTML entities and Unicode escape sequences.",
+			"decode":                                "Decode HTML entities and Unicode escape sequences in the input.",
+			"hex":                                   "Encode the input strings in the $HEX[...] format.",
+			"dehex":                                 "Decode the $HEX[...] strings in the input.",
+			"mask -rm [uldsb] -v":                   "Replace characters in the input with a mask.",
+			"mask-remove -rm [uldsb]":               "Remove the characters that a mask selects. Alias: remove.",
+			"mask-retain -rm [uldsb] -tf [file] -v": "Make masks that keep the strings from a file. Alias: retain.",
+			"mask-pop -rm [uldsbt]":                 "Divide the input at character boundaries and keep the tokens. Alias: pop.",
+			"mask-match -tf [file]":                 "Keep only the input strings that match a mask from a mask file. Alias: match.",
+			"mask-swap -tf [file]":                  "Swap the tokens in mask or partial mask input with tokens from a file.",
+			"passphrase -w [words]":                 "Make passphrases from sentences. Each passphrase has the number of words that you set.",
+			"regram -w [words]":                     "Make new n-grams from sentences. Each n-gram has the number of words that you set.",
+			"brainstorm -w [range] -l [range] [-unicode]": "Make n-grams in title case, with and without apostrophes, in a length range.",
+			"analyze": "Calculate metadata for the input. Alias: analyzer.",
 		}
 
 		keys := make([]string, 0, len(modes))
@@ -617,33 +646,62 @@ func main() {
 			fmt.Fprintf(os.Stderr, "  -t %s\n\t%s\n", k, modes[k])
 		}
 		fmt.Fprintf(os.Stderr, "-------------------------------------------------------------------------------------------------------------\n")
-		fmt.Fprintf(os.Stderr, "Tip: Use -t <mode> -h for detailed help and examples on a specific mode.\n")
+		fmt.Fprintf(os.Stderr, "Note: Use -t <mode> -h to see more data and examples for that mode.\n")
 	}
 
-	verbose := flag.Bool("v", false, "Show verbose output when possible. (Can show additional metadata in some modes.)")
-	verbose2 := flag.Bool("vv", false, "Show statistics output when possible.")
-	verbose3 := flag.Bool("vvv", false, "Show verbose statistics output when possible.")
-	minimum := flag.Int("m", 0, "Minimum numerical frequency to include in output.")
-	minComplexity := flag.Int("mc", 0, "Minimum complexity score to include before processing (lowercase, uppercase, digits, specials, bytes) [1-5].")
-	outputVerboseMax := flag.Int("n", 0, "Maximum number of items to return in output.")
-	transformation := flag.String("t", "", "Transformation to apply to input.")
-	replacementMask := flag.String("rm", "uldsbt", "Replacement mask for transformations if applicable.")
-	jsonOutput := flag.String("o", "", "Output path: the JSON file for most modes, or the output directory for the analyzer mode.")
-	bypassMap := flag.Bool("b", false, "Bypass map creation and use stdout as primary output. Disables some options.")
-	debugMode := flag.Int("d", 0, "Enable debug mode with verbosity levels [0-2].")
-	ignoreCase := flag.Bool("ic", false, "Ignore case when processing output and converts all output to lowercase.")
-	includeNonLatin := flag.Bool("unicode", false, "Include non-Latin multi-byte letter sequences by relaxing Latin vowel heuristics.")
-	flag.Var(&retain, "k", "Only keep items in a file.")
-	flag.Var(&remove, "r", "Only keep items not in a file.")
-	flag.Var(&readFiles, "f", "Read additional files for input.")
-	flag.Var(&transformationFiles, "tf", "Read additional files for transformations if applicable.")
-	flag.Var(&intRange, "i", "Starting index for transformations if applicable. Accepts ranges separated by '-'.")
-	flag.Var(&lenRange, "l", "Only output items of a certain length (does not adjust for rules). Accepts ranges separated by '-'.")
-	flag.Var(&wordRange, "w", "Number of words for transformations if applicable. Accepts ranges separated by '-'.")
+	verbose := flag.Bool("v", false, "Show more output, if possible. Some modes add metadata to each item.")
+	verbose2 := flag.Bool("vv", false, "Show output statistics, if possible.")
+	verbose3 := flag.Bool("vvv", false, "Show more statistics for the output, if possible.")
+	minimum := flag.Int("m", 0, "Remove items from the output if their frequency is less than this number.")
+	minComplexity := flag.Int("mc", 0, "Remove input items with a complexity score less than this number, before the transformation. The score is from 1 to 5. It counts the character types: lowercase, uppercase, digit, special, and byte.")
+	outputVerboseMax := flag.Int("n", 0, "Set the maximum number of items in the output.")
+	transformation := flag.String("t", "", "Set the transformation mode to apply to the input.")
+	replacementMask := flag.String("rm", "uldsbt", "Set the mask characters for the modes that use a mask.")
+	jsonOutput := flag.String("o", "", "Set the output path. For most modes it is a JSON file. For the analyze mode it is a directory.")
+	bypassMap := flag.Bool("b", false, "Transform the input in batches. The tool writes the results to standard output after each batch. The memory use does not increase when the input is large. The tool removes duplicate items only in the same batch. The -k, -r, -m, -n, -ic, -vv, -vvv, and -o options do not work with this flag.")
+	workers := flag.Int("p", 0, "Set the number of workers for the -b flag. The workers transform batches at the same time. The default is one worker for each CPU.")
+	debugMode := flag.Int("d", 0, "Set the debug level, from 0 to 2. A higher level shows more debug messages.")
+	ignoreCase := flag.Bool("ic", false, "Change all output to lowercase. Items that are the same in lowercase become one item.")
+	includeNonLatin := flag.Bool("unicode", false, "Keep the lines that have non-Latin letters. The brainstorm mode does not do the Latin vowel check on these lines.")
+	flag.Var(&retain, "k", "Keep only the items that are in a file.")
+	flag.Var(&remove, "r", "Keep only the items that are not in a file.")
+	flag.Var(&readFiles, "f", "Read the input from a file or directory. Use this flag more than one time to read more files.")
+	flag.Var(&transformationFiles, "tf", "Read a transformation file or directory for the modes that use one. You can use this flag more than one time.")
+	flag.Var(&intRange, "i", "Set the start index for the modes that use an index. The value can be a range, for example 1-5.")
+	flag.Var(&lenRange, "l", "Write only the items with a length in this range, for example 4-20. For rules, the length is the length of the rule text.")
+	flag.Var(&wordRange, "w", "Set the number of words for the modes that use a word count. The value can be a range, for example 2-4.")
 	flag.Parse()
 
+	if *workers < 0 {
+		fmt.Fprintf(os.Stderr, "[!] The -p flag must not be negative.\n")
+		os.Exit(1)
+	}
+
+	if *bypassMap && *transformation == "analyze" {
+		fmt.Fprintf(os.Stderr, "[!] The analyze mode needs all of the input at once, so the -b flag is ignored.\n")
+		*bypassMap = false
+	}
+
+	if !*bypassMap {
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == "p" {
+				fmt.Fprintf(os.Stderr, "[!] The -p flag only applies with the -b flag, so it is ignored.\n")
+			}
+		})
+	}
+
 	if *bypassMap {
-		fmt.Fprintf(os.Stderr, "[*] Bypassing map creation and using standard output as primary output. Options are disabled. This does not bypass the initial input memory usage.\n")
+		fmt.Fprintf(os.Stderr, "[*] Bypassing map creation and streaming input to standard output. Memory use does not grow with input size. Duplicates are only removed within a batch of input, pipe to 'sort -u' to remove them all.\n")
+		var ignored []string
+		flag.Visit(func(f *flag.Flag) {
+			switch f.Name {
+			case "k", "r", "m", "n", "ic", "vv", "vvv", "o":
+				ignored = append(ignored, "-"+f.Name)
+			}
+		})
+		if len(ignored) > 0 {
+			fmt.Fprintf(os.Stderr, "[!] Ignoring options that do not apply with -b: %s.\n", strings.Join(ignored, ", "))
+		}
 	}
 
 	if *debugMode > 0 {
@@ -651,6 +709,38 @@ func main() {
 	}
 
 	fs := &models.RealFileSystem{}
+
+	if *bypassMap {
+		stat, _ := os.Stdin.Stat()
+		err = bypass.Run(bypass.Options{
+			Transformation:      *transformation,
+			StartIndex:          intRange.Start,
+			EndIndex:            intRange.End,
+			Verbose:             *verbose,
+			ReplacementMask:     *replacementMask,
+			Debug:               *debugMode,
+			WordStart:           wordRange.Start,
+			WordEnd:             wordRange.End,
+			LengthStart:         lenRange.Start,
+			LengthEnd:           lenRange.End,
+			IncludeNonLatin:     *includeNonLatin,
+			MinComplexity:       *minComplexity,
+			Files:               readFiles,
+			TransformationFiles: transformationFiles,
+			Workers:             *workers,
+		}, fs, os.Stdin, (stat.Mode()&os.ModeCharDevice) == 0)
+		switch {
+		case errors.Is(err, bypass.ErrNoInput):
+			fmt.Fprintf(os.Stderr, "[!] No input provided. Exiting.\n")
+		case errors.Is(err, bypass.ErrNoItems):
+			fmt.Fprintf(os.Stderr, "[!] No items remaining after complexity filter. Exiting.\n")
+		case err != nil:
+			fmt.Fprintf(os.Stderr, "[!] Error: %s.\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	var retainMap map[string]int
 	var removeMap map[string]int
 	var readFilesMap map[string]int

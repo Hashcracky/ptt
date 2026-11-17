@@ -54,6 +54,93 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 		fmt.Fprintf(os.Stderr, "[?] TransformationController: Starting transformation...\n")
 	}
 
+	CheckModeRequirements(mode, transformationFilesMap, wordRangeStart)
+	output = ApplyTransformation(input, mode, startingIndex, endingIndex, verbose, replacementMask, transformationFilesMap, bypass, functionDebug, wordRangeStart, wordRangeEnd, outMinLength, outMaxLength, includeNonLatin)
+
+	if debug > 0 {
+		fmt.Fprintf(os.Stderr, "[?] TransformationController: Output map is %v.\n", output)
+		fmt.Fprintf(os.Stderr, "[?] TransformationController: Transformation complete. Resuming output.\n")
+	}
+
+	return output
+}
+
+// CheckModeRequirements prints the notices for a mode and exits if a flag the
+// mode requires was not provided. It is separate from ApplyTransformation so
+// that callers who apply a transformation many times, such as bypass mode,
+// only check and print these once.
+//
+// Args:
+//
+//	mode (string): The mode to run the CLI in
+//	transformationFilesMap (map[string]int): A map of transformation files to
+//	use for modes like retain-mask
+//	wordRangeStart (int): The starting range for word operations
+//
+// Returns:
+//
+//	None
+func CheckModeRequirements(mode string, transformationFilesMap map[string]int, wordRangeStart int) {
+	switch mode {
+	case "mask-retain", "retain":
+		if len(transformationFilesMap) == 0 {
+			fmt.Fprintf(os.Stderr, "[!] Retain masks require use of one or more -tf flags to specify one or more files.\n")
+			os.Exit(1)
+		}
+	case "mask-match", "match":
+		if len(transformationFilesMap) == 0 {
+			fmt.Fprintf(os.Stderr, "[!] Match masks require use of one or more -tf flags to specify one or more files.\n")
+			os.Exit(1)
+		}
+	case "mask-swap":
+		fmt.Fprintf(os.Stderr, "[*] This transformation mode requires a retain mask file to use for swapping.\n")
+		if len(transformationFilesMap) == 0 {
+			fmt.Fprintf(os.Stderr, "[!] Mask-swap operations require use of one or more -tf flags to specify one or more files.\n")
+			os.Exit(1)
+		}
+	case "passphrase":
+		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects space separated content.\n")
+		if wordRangeStart == 0 {
+			fmt.Fprintf(os.Stderr, "[!] Passphrase operations require use of the -w flag to specify the number of words to use.\n")
+			os.Exit(1)
+		}
+	case "regram":
+		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects space separated content.\n")
+		if wordRangeStart == 0 {
+			fmt.Fprintf(os.Stderr, "[!] Regram operations require use of the -w flag to specify the number of words to use.\n")
+			os.Exit(1)
+		}
+	}
+}
+
+// ApplyTransformation applies the transformation for a mode to a map without
+// printing notices or checking requirements, see CheckModeRequirements. If
+// bypass is true the results are written to utils.BypassOutput, including for
+// modes this tool does not know, which pass their input through, and the
+// returned map is empty.
+//
+// Args:
+//
+//	input (map[string]int): A map of input values
+//	mode (string): The mode to run the CLI in
+//	startingIndex (int): The starting index for the transformation if applicable
+//	endingIndex (int): The ending index for the transformation if applicable
+//	verbose (bool): If true, the verbose information is printed when available
+//	replacementMask (string): The mask characters to use for masking operations
+//	transformationFilesMap (map[string]int): A map of transformation files to
+//	use for modes like retain-mask
+//	bypass (bool): If true, the map is not used for output or filtering
+//	functionDebug (bool): If true, print additional debug information to stderr
+//	wordRangeStart (int): The starting range for word operations
+//	wordRangeEnd (int): The ending range for word operations
+//	outMinLength (int): The minimum output length for brainstorm mode.
+//	outMaxLength (int): The maximum output length for brainstorm mode.
+//	includeNonLatin (bool): If true, relax Latin vowel heuristics in brainstorm mode.
+//
+// Returns:
+//
+//	(map[string]int): A map of transformed values
+func ApplyTransformation(input map[string]int, mode string, startingIndex int, endingIndex int, verbose bool, replacementMask string, transformationFilesMap map[string]int, bypass bool, functionDebug bool, wordRangeStart int, wordRangeEnd int, outMinLength int, outMaxLength int, includeNonLatin bool) (output map[string]int) {
 	switch mode {
 	case "rule-append", "rule-append-remove", "append", "append-remove":
 		output = rule.AppendRules(input, mode, bypass, functionDebug)
@@ -85,49 +172,27 @@ func TransformationController(input map[string]int, mode string, startingIndex i
 		input = mask.MakeMaskedMap(input, replacementMask, false, false, false)
 		output = mask.RemoveMaskedCharacters(input, replacementMask, bypass, functionDebug)
 	case "mask-retain", "retain":
-		if len(transformationFilesMap) == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Retain masks require use of one or more -tf flags to specify one or more files.\n")
-			os.Exit(1)
-		}
 		output = mask.MakeRetainMaskedMap(input, replacementMask, transformationFilesMap, bypass, functionDebug, verbose)
 	case "mask-match", "match":
-		if len(transformationFilesMap) == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Match masks require use of one or more -tf flags to specify one or more files.\n")
-			os.Exit(1)
-		}
 		output = mask.MakeMatchedMaskedMap(input, replacementMask, transformationFilesMap, bypass, functionDebug)
 	case "mask-pop", "pop":
 		output = mask.BoundarySplitPopMap(input, replacementMask, bypass, functionDebug)
 	case "mask-swap":
-		fmt.Fprintf(os.Stderr, "[*] This transformation mode requires a retain mask file to use for swapping.\n")
-		if len(transformationFilesMap) == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Mask-swap operations require use of one or more -tf flags to specify one or more files.\n")
-			os.Exit(1)
-		}
 		output = mask.ShuffleMap(input, replacementMask, transformationFilesMap, bypass, functionDebug)
 	case "passphrase":
-		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects space separated content.\n")
-		if wordRangeStart == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Passphrase operations require use of the -w flag to specify the number of words to use.\n")
-			os.Exit(1)
-		}
 		output = MakePassphraseMap(input, bypass, functionDebug, wordRangeStart, wordRangeEnd)
 	case "regram":
-		fmt.Fprintf(os.Stderr, "[*] This transformation mode expects space separated content.\n")
-		if wordRangeStart == 0 {
-			fmt.Fprintf(os.Stderr, "[!] Regram operations require use of the -w flag to specify the number of words to use.\n")
-			os.Exit(1)
-		}
 		output = GenerateNGramMap(input, wordRangeStart, wordRangeEnd, bypass, functionDebug)
 	case "brainstorm":
 		output = brainstorm.ProcessBrainstormMap(input, wordRangeStart, wordRangeEnd, outMinLength, outMaxLength, bypass, functionDebug, includeNonLatin)
 	default:
 		output = input
-	}
-
-	if debug > 0 {
-		fmt.Fprintf(os.Stderr, "[?] TransformationController: Output map is %v.\n", output)
-		fmt.Fprintf(os.Stderr, "[?] TransformationController: Transformation complete. Resuming output.\n")
+		if bypass {
+			for key := range input {
+				utils.BypassOutput.WriteLine(key)
+			}
+			output = make(map[string]int)
+		}
 	}
 
 	return output
@@ -168,7 +233,7 @@ func MakePassphraseMap(input map[string]int, bypass bool, debug bool, wordRangeS
 						newMap[newKey] += value
 					}
 				} else {
-					fmt.Println(newKey)
+					utils.BypassOutput.WriteLine(newKey)
 				}
 			}
 		}
@@ -217,7 +282,7 @@ func GenerateNGramMap(input map[string]int, wordRangeStart int, wordRangeEnd int
 						newMap[newKey] += value
 					}
 				} else {
-					fmt.Println(newKey)
+					utils.BypassOutput.WriteLine(newKey)
 				}
 			}
 		}

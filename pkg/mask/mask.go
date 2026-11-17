@@ -114,7 +114,7 @@ func MakeMaskedMap(input map[string]int, replacementMask string, verbose bool, b
 			}
 
 		case true:
-			fmt.Println(newKey)
+			utils.BypassOutput.WriteLine(newKey)
 		}
 	}
 	return maskedMap
@@ -184,7 +184,7 @@ func MakeRetainMaskedMap(input map[string]int, replacementMask string, retain ma
 					maskedMap[newKey] = value
 				}
 			case true:
-				fmt.Println(newKey)
+				utils.BypassOutput.WriteLine(newKey)
 			}
 		}
 	}
@@ -353,7 +353,7 @@ func RemoveMaskedCharacters(input map[string]int, replacementMask string, bypass
 				maskedMap[newKey] = value
 			}
 		case true:
-			fmt.Println(newKey)
+			utils.BypassOutput.WriteLine(newKey)
 		}
 	}
 	return maskedMap
@@ -407,7 +407,7 @@ func MakeMatchedMaskedMap(input map[string]int, replacementMask string, maskMap 
 			}
 		case true:
 			if _, exists := maskMap[newKey]; exists {
-				fmt.Println(key)
+				utils.BypassOutput.WriteLine(key)
 			}
 		}
 	}
@@ -453,7 +453,11 @@ func BoundarySplitPopMap(input map[string]int, replacementMask string, bypass bo
 				if strings.ContainsRune(replacementMask, 't') && lastRuneType == 'u' && runeType == 'l' {
 					// do nothing so the token continues
 				} else if token != "" {
-					result[token]++
+					if !bypass {
+						result[token]++
+					} else {
+						utils.BypassOutput.WriteLine(token)
+					}
 					token = ""
 				}
 			}
@@ -474,7 +478,7 @@ func BoundarySplitPopMap(input map[string]int, replacementMask string, bypass bo
 			if !bypass {
 				result[token]++
 			} else {
-				fmt.Println(token)
+				utils.BypassOutput.WriteLine(token)
 			}
 		}
 	}
@@ -566,7 +570,7 @@ func ShuffleMap(input map[string]int, replacementMask string, swapMap map[string
 						shuffleMap[shufKey] = value
 					}
 				case true:
-					fmt.Println(shufKey)
+					utils.BypassOutput.WriteLine(shufKey)
 				}
 
 			}

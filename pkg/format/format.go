@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashcracky/ptt/pkg/mask"
 	"github.com/hashcracky/ptt/pkg/models"
+	"github.com/hashcracky/ptt/pkg/utils"
 )
 
 // ----------------------------------------------------------------------------
@@ -549,13 +550,27 @@ func RemoveLengthRange(freq map[string]int, start int, end int) map[string]int {
 func FilterByComplexity(freq map[string]int, minComplexity int) map[string]int {
 	newFreq := make(map[string]int)
 	for key, value := range freq {
-		m := mask.MakeMaskedString(key, "uldbs")
-		complexity := mask.TestMaskComplexity(m)
-		if complexity >= minComplexity {
+		if MeetsComplexity(key, minComplexity) {
 			newFreq[key] = value
 		}
 	}
 	return newFreq
+}
+
+// MeetsComplexity reports whether the complexity score of a single item, as
+// used by FilterByComplexity, is at least the provided minimum.
+//
+// Args:
+//
+//	key (string): The item to score
+//	minComplexity (int): The minimum complexity score to accept
+//
+// Returns:
+//
+//	(bool): True if the item meets the threshold
+func MeetsComplexity(key string, minComplexity int) bool {
+	m := mask.MakeMaskedString(key, "uldbs")
+	return mask.TestMaskComplexity(m) >= minComplexity
 }
 
 // FilterTopN removes all but the top N items from a map of item frequencies
@@ -634,13 +649,13 @@ func EncodeInputMap(input map[string]int, bypass bool, debug bool) map[string]in
 		if htmlEncoded != "" && !bypass {
 			output[htmlEncoded] = v
 		} else if htmlEncoded != "" && bypass {
-			fmt.Println(htmlEncoded)
+			utils.BypassOutput.WriteLine(htmlEncoded)
 		}
 
 		if escapeEncoded != "" && !bypass {
 			output[escapeEncoded] = v
 		} else if escapeEncoded != "" && bypass {
-			fmt.Println(escapeEncoded)
+			utils.BypassOutput.WriteLine(escapeEncoded)
 		}
 	}
 	return output
@@ -699,13 +714,13 @@ func DecodeInputMap(input map[string]int, bypass bool, debug bool) map[string]in
 		if htmlDecoded != "" && !bypass {
 			output[htmlDecoded] = v
 		} else if htmlDecoded != "" && bypass {
-			fmt.Println(htmlDecoded)
+			utils.BypassOutput.WriteLine(htmlDecoded)
 		}
 
 		if escapeDecoded != "" && !bypass {
 			output[escapeDecoded] = v
 		} else if escapeDecoded != "" && bypass {
-			fmt.Println(escapeDecoded)
+			utils.BypassOutput.WriteLine(escapeDecoded)
 		}
 	}
 	return output
@@ -828,7 +843,7 @@ func DehexMap(input map[string]int, bypass bool, debug bool) map[string]int {
 		if !bypass {
 			decodedMap[decodedStr] = v
 		} else {
-			fmt.Println(decodedStr)
+			utils.BypassOutput.WriteLine(decodedStr)
 		}
 	}
 
@@ -860,7 +875,7 @@ func HexEncodeMap(input map[string]int, bypass bool, debug bool) map[string]int 
 		if !bypass {
 			output["$HEX["+encoded+"]"] = v
 		} else {
-			fmt.Println("$HEX[" + encoded + "]")
+			utils.BypassOutput.WriteLine("$HEX[" + encoded + "]")
 		}
 	}
 	return output

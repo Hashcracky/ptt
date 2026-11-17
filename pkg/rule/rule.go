@@ -280,7 +280,7 @@ func AppendRules(items map[string]int, operation string, bypass bool, debug bool
 			if appendRemoveRule != "" && !bypass {
 				returnMap[appendRemoveRule] = value
 			} else if appendRemoveRule != "" && bypass {
-				fmt.Println(appendRemoveRule)
+				utils.BypassOutput.WriteLine(appendRemoveRule)
 			}
 		}
 		return returnMap
@@ -299,7 +299,7 @@ func AppendRules(items map[string]int, operation string, bypass bool, debug bool
 			if appendRule != "" && !bypass {
 				returnMap[appendRule] = value
 			} else if appendRule != "" && bypass {
-				fmt.Println(appendRule)
+				utils.BypassOutput.WriteLine(appendRule)
 			}
 		}
 		return returnMap
@@ -344,7 +344,7 @@ func PrependRules(items map[string]int, operation string, bypass bool, debug boo
 			if prependRemoveRule != "" && !bypass {
 				returnMap[prependRemoveRule] = value
 			} else if prependRemoveRule != "" && bypass {
-				fmt.Println(prependRemoveRule)
+				utils.BypassOutput.WriteLine(prependRemoveRule)
 			}
 		}
 		return returnMap
@@ -365,7 +365,7 @@ func PrependRules(items map[string]int, operation string, bypass bool, debug boo
 			if prependToggleRule != "" && !bypass {
 				returnMap[prependToggleRule] = value
 			} else if prependToggleRule != "" && bypass {
-				fmt.Println(prependToggleRule)
+				utils.BypassOutput.WriteLine(prependToggleRule)
 			}
 		}
 		return returnMap
@@ -384,7 +384,7 @@ func PrependRules(items map[string]int, operation string, bypass bool, debug boo
 			if prependRule != "" && !bypass {
 				returnMap[prependRule] = value
 			} else if prependRule != "" && bypass {
-				fmt.Println(prependRule)
+				utils.BypassOutput.WriteLine(prependRule)
 			}
 		}
 		return returnMap
@@ -424,7 +424,7 @@ func InsertRules(items map[string]int, index string, end string, bypass bool, de
 			if insertRule != "" && !bypass {
 				returnMap[insertRule] = value
 			} else if insertRule != "" && bypass {
-				fmt.Println(insertRule)
+				utils.BypassOutput.WriteLine(insertRule)
 			}
 		}
 	}
@@ -464,7 +464,7 @@ func OverwriteRules(items map[string]int, index string, end string, bypass bool,
 			if overwriteRule != "" && !bypass {
 				returnMap[overwriteRule] = value
 			} else if overwriteRule != "" && bypass {
-				fmt.Println(overwriteRule)
+				utils.BypassOutput.WriteLine(overwriteRule)
 			}
 		}
 	}
@@ -504,7 +504,7 @@ func ToggleRules(items map[string]int, index string, end string, bypass bool, de
 			if toggleRule != "" && !bypass {
 				returnMap[toggleRule] = value
 			} else if toggleRule != "" && bypass {
-				fmt.Println(toggleRule)
+				utils.BypassOutput.WriteLine(toggleRule)
 			}
 		}
 	}

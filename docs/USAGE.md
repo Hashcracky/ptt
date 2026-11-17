@@ -58,8 +58,13 @@ There are some additional notes when importing data and getting started:
 - When reading from standard input, the tool can detect chaining `ptt` commands when the `-v` flag is used. This can be used to pipe multiple commands together without losing frequency data.
 - When reading from files, the tool can detect when `ptt` JSON output is used as input and will parse the JSON data.
 - The tool should support multibyte characters and transformations in every mode.
-- The `-b` flag can be used to bypass map creation and use `stdout` as the primary output. This can be useful for working with large datasets.
-    - If the `-b` flag is used, the final output will be empty, and all filtering and duplication removal will be disabled.
+- The `-b` flag bypasses map creation and streams results to `stdout` using a small, fixed amount of memory, no matter how large the input is. This makes it possible to process very large inputs (tens of GB) from files, directories, or standard input, for example `ptt -t brainstorm -f huge.txt -b | wc -l`.
+    - Input is read line by line and transformed in bounded batches. Results are written as soon as they are produced, and the final output will be empty.
+    - Batches are transformed in parallel. The `-p [workers]` flag sets the number of workers, and the default is one worker for each CPU. This speeds up CPU-heavy modes such as `brainstorm`. Memory use grows with the number of workers because each worker holds one batch.
+    - With more than one worker, the order of the output lines is not defined. Use `-p 1` to keep the batches in input order, or pipe the output to `sort`. Debug level 2 (`-d 2`) always uses one worker.
+    - Duplicates are only removed within a batch of input (up to 100,000 unique items or 32 MiB). Pipe the output to `sort -u` to remove all duplicates.
+    - Frequency-based and output options are disabled: `-k`, `-r`, `-m`, `-n`, `-ic`, `-vv`, `-vvv`, and `-o` are ignored with a warning. Input filtering with `-mc` and the `-i`, `-w`, `-l`, `-rm` and `-v` flags still work. The `analyze` mode needs the full data set, so it ignores `-b`.
+    - The files given with `-tf` are still loaded into memory because the transformation needs them.
 - The `-d [0-2]` flag can be used to enable debug output. This will show the data
   object after all transformations have been applied. There are two levels
   of debug output that can be used.
